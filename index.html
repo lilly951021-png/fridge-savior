@@ -1,60 +1,223 @@
-# 專案 Prompt 工程與開發歷程紀錄 (Prompt Log)
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冰箱孤兒食材拯救器</title>
+  <!-- 引入 Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-amber-50/50 text-slate-800 min-h-screen p-4 md:p-8 flex justify-center items-start">
 
-- **專案名稱**：冰箱孤兒食材拯救器 (Fridge Orphan Savior)
-- **開發目標**：打造小而精、單一功能的 Web 應用，串接最新 Gemini API，專注解決冰箱零散食材與懶人一鍋到底料理需求。
-- **技術架構**：單檔 HTML + Vue 3 (CDN) + Tailwind CSS (CDN) + Google Gemini API (gemini-3.6-flash)。
+  <div id="app" class="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-amber-100 p-6 flex flex-col gap-5">
+    <!-- 標題區 -->
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+        <span>🍲</span> 冰箱孤兒食材拯救器
+      </h1>
+      <p class="text-sm text-slate-500 mt-1">
+        當冰箱只剩零散食材，交給電鍋與極簡料理，熟了「打開喇一喇」就能開動！
+      </p>
+    </div>
 
----
+    <!-- API Key 輸入區 -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex flex-col gap-1.5">
+      <label class="text-xs font-semibold text-amber-900">Gemini API Key</label>
+      <input 
+        v-model="apiKey" 
+        type="password" 
+        placeholder="貼上你的 API Key (AIzaSy...)" 
+        class="w-full text-sm px-3 py-2 bg-white rounded-lg border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+      />
+      <span class="text-[11px] text-amber-700">金鑰僅保存在瀏覽器本地記憶體中，安全不外洩。</span>
+    </div>
 
-## 歷程一：專案發想與平台限制釐清
+    <!-- 食材輸入與標籤區 -->
+    <div class="flex flex-col gap-2">
+      <label class="text-sm font-semibold text-slate-700">冰箱殘局（輸入食材後按 Enter 或點新增）</label>
+      <div class="flex gap-2">
+        <input 
+          v-model="ingredientInput" 
+          @keyup.enter="addIngredient"
+          type="text" 
+          placeholder="例如：幾瓣落單的蒜頭、半罐玉米粒" 
+          class="flex-1 text-sm px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        />
+        <button 
+          @click="addIngredient" 
+          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-medium rounded-lg transition"
+        >
+          新增
+        </button>
+      </div>
 
-### 1. 使用者提示詞 (User Prompt)
-> 選擇「小而精」的單一功能 Web 應用，避免範圍過大。例如：整合 OpenWeather API 的穿搭推薦網頁、個人記帳/待辦事項系統（串接 Firebase）、或是串接 OpenAI/Gemini API 的智慧摘要工具。給我幾個 idea？哪一個可以用平板完成？
+      <!-- 食材標籤 -->
+      <div class="flex flex-wrap gap-1.5 mt-2 min-h-[32px]">
+        <span 
+          v-for="(item, index) in ingredients" 
+          :key="index"
+          class="inline-flex items-center gap-1.5 bg-amber-100/70 text-amber-900 border border-amber-200 text-xs px-2.5 py-1 rounded-full font-medium"
+        >
+          {{ item }}
+          <button @click="removeIngredient(index)" class="hover:text-rose-600 font-bold text-sm leading-none">&times;</button>
+        </span>
+        <span v-if="ingredients.length === 0" class="text-xs text-slate-400 italic">目前沒有食材，請新增上方食材</span>
+      </div>
+    </div>
 
-### 2. AI 建議與決策
-- **選題評估**：淘汰需要複雜建置環境（Node.js/Docker）或繁瑣 GCP 憑證設定的專案。
-- **最終定案**：選擇「剩菜食材靈感生成器」，採純靜態前端架構，可透過 CDN 載入 Vue 3 與 Tailwind CSS，免架設後端即可直接運行。
+    <!-- 生成按鈕 -->
+    <button 
+      @click="generateRecipe" 
+      :disabled="isLoading || ingredients.length === 0 || !apiKey"
+      class="w-full py-3 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-medium rounded-xl transition shadow-sm flex items-center justify-center gap-2"
+    >
+      <span v-if="isLoading" class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+      <span>{{ isLoading ? 'AI 大廚正在搶救食材...' : '拯救這些食材！產生一鍵料理' }}</span>
+    </button>
 
----
+    <!-- 錯誤訊息提示 -->
+    <div v-if="errorMessage" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs leading-relaxed">
+      {{ errorMessage }}
+    </div>
 
-## 歷程二：核心情境定義與 Prompt 意圖注入
+    <!-- 食譜結果卡片 -->
+    <div v-if="recipe" class="mt-2 border-t border-slate-100 pt-5 flex flex-col gap-4">
+      <div class="flex items-baseline justify-between gap-2">
+        <h2 class="text-lg font-bold text-slate-900">{{ recipe.dish_name }}</h2>
+        <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium shrink-0">{{ recipe.estimated_time }}</span>
+      </div>
+      
+      <p class="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-lg border border-amber-100/60">
+        {{ recipe.description }}
+      </p>
 
-### 1. 使用者提示詞 (User Prompt)
-> 我希望表達出：當冰箱裡只剩你我他，例如：一包假日沒煮完的烏龍麵、倒不滿一杯牛奶、鮪魚罐頭、沒有蛋沙拉也沒吐司不知道該何去何從、三三兩兩的蒜頭、壽喜燒醬料煮壽喜燒膩了。放進電鍋煮個 15 分鐘就可以打開喇一喇，就是鮪魚奶香烏龍麵。
+      <!-- 額外所需調味料/輔料 -->
+      <div v-if="recipe.basic_seasonings && recipe.basic_seasonings.length" class="bg-slate-50 p-3 rounded-lg">
+        <div class="text-xs font-semibold text-slate-700 mb-1">補充常備調料：</div>
+        <div class="text-xs text-slate-500">{{ recipe.basic_seasonings.join('、') }}</div>
+      </div>
 
-### 2. Prompt 設計與優化 (System Prompt in Code)
-為使 LLM 精準輸出符合情境的內容，將商業常規食譜設定改寫為生活感強烈的美食救難模式：
-- **角色設定**：精通「冰箱孤兒食材拯救」與「極致懶人料理」的深夜生活美食家。
-- **限制條件**：
-  1. 拒絕繁瑣刀工與分段熱鍋，強制採用「電鍋/微波爐/平底鍋一鍋到底」、「熟了打開喇一喇即可開吃」的做法。
-  2. 醬料乳化轉換：將既有甜醬油（壽喜燒醬）與牛奶結合，創造和風奶醬效果。
-  3. 強制輸出格式：設定 `responseMimeType: "application/json"`，要求回傳包含 `dish_name`、`estimated_time`、`description`、`basic_seasonings`、`steps` 的乾淨 JSON 字串。
+      <!-- 製作步驟 -->
+      <div>
+        <div class="text-sm font-semibold text-slate-800 mb-2">料理救贖步驟</div>
+        <ol class="space-y-2 text-xs text-slate-600 list-decimal list-inside">
+          <li v-for="(step, idx) in recipe.steps" :key="idx" class="leading-relaxed">
+            <span class="text-slate-800">{{ step }}</span>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
 
----
+  <script>
+    const { createApp, ref } = Vue;
 
-## 歷程三：環境除錯與模型更新迭代
+    createApp({
+      setup() {
+        const apiKey = ref('');
+        const ingredientInput = ref('');
+        const ingredients = ref([
+          '假日沒煮完的烏龍麵',
+          '倒不滿一杯牛奶',
+          '不知何去何從的鮪魚罐頭',
+          '三三兩兩的蒜頭',
+          '煮膩了的壽喜燒醬料'
+        ]);
+        const isLoading = ref(false);
+        const errorMessage = ref('');
+        const recipe = ref(null);
 
-### 1. 錯誤排查 (1) - 瀏覽器自動翻譯造成 SyntaxError
-- **現象**：程式碼出現 `SyntaxError: Unexpected token '<'`，且腳本內出現 `嘗試 {`、`const提示=` 等中文關鍵字。
-- **原因**：平板瀏覽器開啟了全頁自動翻譯，破壞了 JavaScript 的保留字與 Fetch 語法。
-- **解決對策**：關閉自動翻譯，將邏輯恢復為純英文標準語法，並改用 `await res.text()` 攔截非 JSON 報錯以增強容錯力。
+        const addIngredient = () => {
+          const val = ingredientInput.value.trim();
+          if (val && !ingredients.value.includes(val)) {
+            ingredients.value.push(val);
+            ingredientInput.value = '';
+          }
+        };
 
-### 2. 錯誤排查 (2) - 模型版本淘汰更新
-- **現象**：API 回報 `models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash...`。
-- **原因**：Google AI Studio 新建立的金鑰限制使用更新一代模型。
-- **解決對策**：將請求端點中的模型名稱由 `gemini-2.5-flash` 即時升級替換為 `gemini-3.6-flash`。
+        const removeIngredient = (index) => {
+          ingredients.value.splice(index, 1);
+        };
 
----
+        const generateRecipe = async () => {
+          if (!apiKey.value) {
+            errorMessage.value = '請先輸入 Gemini API Key';
+            return;
+          }
+          isLoading.value = true;
+          errorMessage.value = '';
+          recipe.value = null;
 
-## 歷程四：最終成果驗證
+          const prompt = `
+你是一位精通「冰箱孤兒食材拯救」與「極致懶人家常料理」的生活美食家。
+使用者的冰箱現在只剩這些零散、尷尬、甚至吃膩的剩餘物資：
+【現有食材】：${ingredients.value.join('、')}
 
-- **輸入食材驗證**：
-  - 假日沒煮完的烏龍麵
-  - 倒不滿一杯牛奶
-  - 不知何去何從的鮪魚罐頭
-  - 三三兩兩的蒜頭
-  - 煮膩了的壽喜燒醬料
-- **生成成果**：
-  - **菜餚名稱**：深夜救贖：偽日式和風奶醬鮪魚烏龍麵
-  - **烹飪方式**：平底鍋 8 分鐘（免預熱、免加油，通通下鍋，大膽喇一喇即可開吃）
-  - **驗收結論**：UI 成功渲染食材標籤動態增刪、API 連線成功且回應精準符合預期之生活化語調。
+請遵循以下核心原則發想一道料理：
+1. 宗旨：不要給任何需要複雜刀工、分段熱鍋的繁瑣步驟。盡量採用「全部丟進電鍋/微波爐/平底鍋一鍋到底」、「熟了打開喇一喇（拌勻）即可開吃」的療癒系做法。
+2. 調味救贖：如果食材裡有現成醬汁（如壽喜燒醬、烤肉醬），請發揮創意將它與牛奶、起司或水重新乳化調和，變身成全新風味（例如：壽喜燒醬+牛奶+蒜碎+鮪魚油脂 = 濃郁日式奶香醬）。
+3. 語調：菜名要親切療癒、帶點幽默（例如：「深夜救贖：電鍋一鍋到底和風奶香烏龍麵」）。
+
+請嚴格以 JSON 格式回應，不要包含任何 Markdown 格式或代碼區塊 (\`\`\`json)，直接輸出合法的 JSON 字串：
+{
+  "dish_name": "菜餚名稱",
+  "estimated_time": "預估時間（例如：電鍋跳起約 15 分鐘）",
+  "description": "一句溫暖又幽默的簡介，描述這些孤兒食材如何起死回生",
+  "basic_seasonings": ["需要額外補的微量調料（如：黑胡椒少許、清水 50ml）"],
+  "steps": [
+    "步驟一內容",
+    "步驟二內容",
+    "步驟三內容"
+  ]
+}
+          `.trim();
+
+          try {
+            // 使用新版 gemini-3.6-flash
+            const response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey.value}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: {
+                    responseMimeType: "application/json"
+                  }
+                })
+              }
+            );
+
+            if (!response.ok) {
+              const errData = await response.json();
+              throw new Error(errData.error?.message || 'API 請求失敗');
+            }
+
+            const data = await response.json();
+            const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            recipe.value = JSON.parse(textResponse);
+          } catch (err) {
+            errorMessage.value = `生成失敗：${err.message}`;
+          } finally {
+            isLoading.value = false;
+          }
+        };
+
+        return {
+          apiKey,
+          ingredientInput,
+          ingredients,
+          isLoading,
+          errorMessage,
+          recipe,
+          addIngredient,
+          removeIngredient,
+          generateRecipe
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
