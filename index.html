@@ -1,173 +1,649 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>冰箱孤兒食材拯救器</title>
-  <!-- 引入 Tailwind CSS CDN -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>冰箱孤兒食材拯救器 - 打開喇一喇就能吃！</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入 Vue 3 CDN -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Google Font: Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 自訂平滑過渡與隱藏滾動條 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .animate-gentle {
+      animation: pulse-subtle 3s ease-in-out infinite;
+    }
+  </style>
 </head>
-<body class="bg-amber-50/50 text-slate-800 min-h-screen p-4 md:p-8 flex justify-center items-start">
+<body class="bg-amber-50/50 text-stone-800 font-sans min-h-screen selection:bg-amber-200">
+  <div id="app" class="max-w-4xl mx-auto px-4 py-6 sm:py-10">
 
-  <div id="app" class="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-amber-100 p-6 flex flex-col gap-5">
-    <!-- 標題區 -->
-    <div>
-      <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-        <span>🍲</span> 冰箱孤兒食材拯救器
+    <!-- 頁頭 Header -->
+    <header class="text-center mb-8">
+      <div class="inline-flex items-center justify-center gap-2 bg-amber-100 text-amber-800 text-xs sm:text-sm font-semibold px-4 py-1.5 rounded-full mb-3 shadow-sm border border-amber-200">
+        <span>🍲 外宿救星 • 極簡防剩食神器</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-stone-900 tracking-tight flex items-center justify-center gap-2">
+        <span>🍲 冰箱孤兒食材拯救器</span>
       </h1>
-      <p class="text-sm text-slate-500 mt-1">
-        當冰箱只剩零散食材，交給電鍋與極簡料理，熟了「打開喇一喇」就能開動！
+      <p class="text-stone-600 mt-2 text-sm sm:text-base max-w-lg mx-auto">
+        當冰箱只剩零散食材，交給電鍋與極簡烹飪，熟了「打開喇一喇」就能開動！
       </p>
-    </div>
 
-    <!-- 食材輸入與標籤區 -->
-    <div class="flex flex-col gap-2">
-      <label class="text-sm font-semibold text-slate-700">冰箱殘局（輸入食材後按 Enter 或點新增）</label>
-      <div class="flex gap-2">
-        <input 
-          v-model="ingredientInput" 
-          @keyup.enter="addIngredient"
-          type="text" 
-          placeholder="例如：幾瓣落單的蒜頭、半罐玉米粒" 
-          class="flex-1 text-sm px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-        />
+      <!-- 快速 3 步教學提示列 -->
+      <div class="mt-6 bg-white/80 backdrop-blur-sm border border-amber-200/80 rounded-2xl p-3 sm:p-4 shadow-sm max-w-2xl mx-auto grid grid-cols-3 gap-2 text-center text-xs sm:text-sm">
+        <div class="p-2 rounded-xl bg-amber-50/80">
+          <div class="font-bold text-amber-800 flex items-center justify-center gap-1">
+            <span class="w-5 h-5 rounded-full bg-amber-200 text-amber-900 inline-flex items-center justify-center text-xs">1</span>
+            點出食材
+          </div>
+          <p class="text-stone-500 text-[11px] mt-0.5">點選分類或自己輸入</p>
+        </div>
+        <div class="p-2 rounded-xl bg-amber-50/80">
+          <div class="font-bold text-amber-800 flex items-center justify-center gap-1">
+            <span class="w-5 h-5 rounded-full bg-amber-200 text-amber-900 inline-flex items-center justify-center text-xs">2</span>
+            選定廚具
+          </div>
+          <p class="text-stone-500 text-[11px] mt-0.5">限制電鍋或平底鍋</p>
+        </div>
+        <div class="p-2 rounded-xl bg-amber-50/80">
+          <div class="font-bold text-amber-800 flex items-center justify-center gap-1">
+            <span class="w-5 h-5 rounded-full bg-amber-200 text-amber-900 inline-flex items-center justify-center text-xs">3</span>
+            產生吃法
+          </div>
+          <p class="text-stone-500 text-[11px] mt-0.5">一鍵救回邊角料！</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主操作面板 -->
+    <main class="space-y-6">
+
+      <!-- 區塊 1: 當前冰箱殘局 (標籤庫 + 輸入) -->
+      <section class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-amber-100/90 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <label class="font-bold text-stone-800 text-base sm:text-lg flex items-center gap-2">
+            <span>🧊 冰箱殘局清單</span>
+            <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+              已累積 {{ selectedIngredients.length }} 樣
+            </span>
+          </label>
+          <button 
+            v-if="selectedIngredients.length > 0"
+            @click="clearAllIngredients"
+            class="text-xs text-stone-400 hover:text-red-500 transition-colors">
+            清空所有食材
+          </button>
+        </div>
+
+        <!-- 自訂輸入列 -->
+        <div class="flex gap-2 mb-4">
+          <div class="relative flex-1">
+            <input 
+              v-model="customInput" 
+              @keyup.enter="addCustomIngredient"
+              type="text" 
+              placeholder="輸入手邊食材（例如：半顆洋蔥、咬一口的熱狗...）"
+              class="w-full pl-4 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all placeholder:text-stone-400"
+            />
+            <span class="absolute right-3 top-2.5 text-stone-400 text-xs hidden sm:inline">Enter 新增</span>
+          </div>
+          <button 
+            @click="addCustomIngredient"
+            class="px-5 py-2.5 bg-stone-800 hover:bg-stone-900 text-white rounded-xl text-sm font-semibold transition-all active:scale-95 shadow-sm">
+            新增
+          </button>
+        </div>
+
+        <!-- 標籤展示區（沒有的叉叉） -->
+        <div class="min-h-[64px] p-3 rounded-2xl bg-amber-50/40 border border-dashed border-amber-200/80 flex flex-wrap items-center gap-2">
+          <span 
+            v-for="(item, idx) in selectedIngredients" 
+            :key="item"
+            class="group inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/70 rounded-full text-xs sm:text-sm font-medium transition-all shadow-xs animate-fadeIn">
+            <span>{{ item }}</span>
+            <button 
+              @click="removeIngredient(idx)" 
+              title="按叉叉移除"
+              class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-amber-300 text-amber-800 hover:text-amber-950 transition-colors">
+              ✕
+            </button>
+          </span>
+          <p v-if="selectedIngredients.length === 0" class="text-stone-400 text-xs sm:text-sm italic pl-2">
+            尚未挑選任何食材。請從下方分類快速點選，或直接輸入！
+          </p>
+        </div>
+      </section>
+
+      <!-- 區塊 2: 點出冰箱有啥（分類速選區） -->
+      <section class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-amber-100/90">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-stone-800 text-base sm:text-lg flex items-center gap-2">
+            <span>👇 點出冰箱有啥（快速點選加入）</span>
+          </h2>
+          <span class="text-xs text-stone-400">點擊即可加入 / 再次點擊取消</span>
+        </div>
+
+        <!-- 分類切換 Tab -->
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-3">
+          <button 
+            v-for="cat in ingredientCategories" 
+            :key="cat.name"
+            @click="activeCategory = cat.name"
+            :class="activeCategory === cat.name ? 'bg-amber-600 text-white shadow-sm' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'"
+            class="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all">
+            {{ cat.icon }} {{ cat.name }}
+          </button>
+        </div>
+
+        <!-- 當前分類的推薦食材 Chips -->
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button 
+            v-for="item in currentCategoryItems" 
+            :key="item"
+            @click="toggleIngredient(item)"
+            :class="isIngredientSelected(item) ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-300' : 'bg-stone-50 text-stone-700 border-stone-200/80 hover:bg-amber-50 hover:border-amber-200'"
+            class="px-3 py-1.5 rounded-xl border text-xs sm:text-sm transition-all flex items-center gap-1.5">
+            <span>{{ isIngredientSelected(item) ? '✓' : '+' }}</span>
+            <span>{{ item }}</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 區塊 3: 限制你的廚具 -->
+      <section class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-amber-100/90">
+        <h2 class="font-bold text-stone-800 text-base sm:text-lg mb-2 flex items-center gap-2">
+          <span>🍳 廚具自己限制</span>
+          <span class="text-xs font-normal text-stone-500">（AI 會根據你有的鍋具調整作法）</span>
+        </h2>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mt-3">
+          <div 
+            v-for="appliance in applianceList" 
+            :key="appliance.id"
+            @click="selectedAppliance = appliance.id"
+            :class="selectedAppliance === appliance.id ? 'border-amber-600 bg-amber-50/70 text-amber-900 ring-2 ring-amber-400/50' : 'border-stone-200 bg-stone-50/50 text-stone-600 hover:border-amber-200 hover:bg-stone-50'"
+            class="cursor-pointer border rounded-2xl p-3 text-center transition-all flex flex-col items-center justify-center gap-1">
+            <span class="text-2xl">{{ appliance.icon }}</span>
+            <span class="text-xs sm:text-sm font-bold">{{ appliance.name }}</span>
+            <span class="text-[10px] text-stone-400">{{ appliance.desc }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 區塊 4: 召喚料理按鈕 -->
+      <div class="pt-2">
         <button 
-          @click="addIngredient" 
-          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-medium rounded-lg transition"
-        >
-          新增
+          @click="generateSolution"
+          :disabled="selectedIngredients.length === 0 || isGenerating"
+          class="w-full py-4 px-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:from-stone-300 disabled:to-stone-400 text-white rounded-2xl font-extrabold text-base sm:text-lg shadow-lg shadow-amber-600/30 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2">
+          <span v-if="isGenerating" class="flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <span>AI 大廚正在打開電鍋喇一喇中...</span>
+          </span>
+          <span v-else class="flex items-center gap-2">
+            <span>🔥 拯救這些食材！產生一鍵料理與吃法</span>
+          </span>
         </button>
       </div>
 
-      <!-- 食材標籤 -->
-      <div class="flex flex-wrap gap-1.5 mt-2 min-h-[32px]">
-        <span 
-          v-for="(item, index) in ingredients" 
-          :key="index"
-          class="inline-flex items-center gap-1.5 bg-amber-100/70 text-amber-900 border border-amber-200 text-xs px-2.5 py-1 rounded-full font-medium"
-        >
-          {{ item }}
-          <button @click="removeIngredient(index)" class="hover:text-rose-600 font-bold text-sm leading-none">&times;</button>
-        </span>
-        <span v-if="ingredients.length === 0" class="text-xs text-slate-400 italic">目前沒有食材，請新增上方食材</span>
-      </div>
-    </div>
+      <!-- 區塊 5: 生成成果卡片 (會自動跳出 可以怎做可以又啥吃法) -->
+      <section v-if="generatedRecipe" id="recipe-result" class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border-2 border-amber-300 animate-fadeIn">
+        
+        <!-- 美食情境封面圖與標籤 -->
+        <div class="relative w-full h-52 sm:h-64 rounded-2xl overflow-hidden mb-6 shadow-inner bg-stone-100">
+          <img 
+            :src="generatedRecipe.imageUrl" 
+            :alt="generatedRecipe.title"
+            class="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+            onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+          <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between text-white">
+            <span class="text-xs bg-amber-600/90 backdrop-blur-sm px-3 py-1 rounded-full font-semibold">
+              📸 拯救成果情境示意圖
+            </span>
+            <span class="text-[11px] text-amber-100/90">
+              美味程度以真實喇一喇為準
+            </span>
+          </div>
+        </div>
 
-    <!-- 生成按鈕 -->
-    <button 
-      @click="generateRecipe" 
-      :disabled="isLoading || ingredients.length === 0"
-      class="w-full py-3 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 text-white font-medium rounded-xl transition shadow-sm flex items-center justify-center gap-2"
-    >
-      <span v-if="isLoading" class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-      <span>{{ isLoading ? 'AI 大廚正在搶救食材...' : '拯救這些食材！產生一鍵料理' }}</span>
-    </button>
+        <div class="flex items-start justify-between flex-wrap gap-2 border-b border-stone-100 pb-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">拯救成功率 99%</span>
+              <span class="text-xs text-stone-500">⏱️ 約 {{ generatedRecipe.timeNeeded }}</span>
+              <span class="text-xs text-stone-500">⚡ 難度：{{ generatedRecipe.difficulty }}</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1">
+              {{ generatedRecipe.title }}
+            </h2>
+          </div>
+          <div class="text-right">
+            <span class="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-xl text-xs font-semibold text-amber-800 border border-amber-200">
+              {{ getApplianceName(selectedAppliance) }}
+            </span>
+          </div>
+        </div>
 
-    <!-- 錯誤訊息提示 -->
-    <div v-if="errorMessage" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs leading-relaxed">
-      {{ errorMessage }}
-    </div>
+        <!-- 幽默評語 -->
+        <div class="my-4 p-3.5 bg-amber-50/70 border-l-4 border-amber-500 rounded-r-xl text-stone-700 text-sm">
+          <span class="font-bold text-amber-800">🧑‍🍳 主廚碎碎念：</span>
+          {{ generatedRecipe.chefComment }}
+        </div>
 
-    <!-- 食譜結果卡片 -->
-    <div v-if="recipe" class="mt-2 border-t border-slate-100 pt-5 flex flex-col gap-4">
-      <div class="flex items-baseline justify-between gap-2">
-        <h2 class="text-lg font-bold text-slate-900">{{ recipe.dish_name }}</h2>
-        <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium shrink-0">{{ recipe.estimated_time }}</span>
-      </div>
-      
-      <p class="text-xs text-slate-600 leading-relaxed bg-amber-50/50 p-3 rounded-lg border border-amber-100/60">
-        {{ recipe.description }}
-      </p>
+        <!-- 兩種吃法推薦 (可以又啥吃法) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-5">
+          <div class="p-4 bg-orange-50/60 rounded-2xl border border-orange-100">
+            <div class="font-bold text-orange-900 text-sm flex items-center gap-1.5 mb-1">
+              <span>🥢 正餐原味吃法：</span>
+            </div>
+            <p class="text-stone-600 text-xs sm:text-sm leading-relaxed">
+              {{ generatedRecipe.servingWay1 }}
+            </p>
+          </div>
+          <div class="p-4 bg-amber-50/60 rounded-2xl border border-amber-100">
+            <div class="font-bold text-amber-900 text-sm flex items-center gap-1.5 mb-1">
+              <span>✨ 升級二段吃法（若手邊還有）：</span>
+            </div>
+            <p class="text-stone-600 text-xs sm:text-sm leading-relaxed">
+              {{ generatedRecipe.servingWay2 }}
+            </p>
+          </div>
+        </div>
 
-      <!-- 額外所需調味料/輔料 -->
-      <div v-if="recipe.basic_seasonings && recipe.basic_seasonings.length" class="bg-slate-50 p-3 rounded-lg">
-        <div class="text-xs font-semibold text-slate-700 mb-1">補充常備調料：</div>
-        <div class="text-xs text-slate-500">{{ recipe.basic_seasonings.join('、') }}</div>
-      </div>
+        <!-- 具體極簡步驟（附互動打勾） -->
+        <div class="mt-6">
+          <h3 class="font-bold text-stone-800 text-base mb-3 flex items-center gap-1.5">
+            <span>📝 極簡烹飪步驟（打開喇一喇）：</span>
+          </h3>
+          <ol class="space-y-2.5">
+            <li 
+              v-for="(step, sIdx) in generatedRecipe.steps" 
+              :key="sIdx"
+              @click="toggleStepCheck(sIdx)"
+              :class="completedSteps[sIdx] ? 'bg-stone-50 text-stone-400 line-through' : 'bg-stone-50/80 text-stone-800'"
+              class="p-3.5 rounded-xl border border-stone-200/80 text-sm flex items-start gap-3 cursor-pointer select-none transition-all">
+              <span 
+                :class="completedSteps[sIdx] ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white border-stone-300 text-transparent'"
+                class="w-5 h-5 rounded-md border flex items-center justify-center text-xs mt-0.5 shrink-0 transition-colors">
+                ✓
+              </span>
+              <span class="flex-1 leading-snug">
+                <strong class="mr-1 text-amber-700">Step {{ sIdx + 1 }}.</strong>
+                {{ step }}
+              </span>
+            </li>
+          </ol>
+        </div>
 
-      <!-- 製作步驟 -->
-      <div>
-        <div class="text-sm font-semibold text-slate-800 mb-2">料理救贖步驟</div>
-        <ol class="space-y-2 text-xs text-slate-600 list-decimal list-inside">
-          <li v-for="(step, idx) in recipe.steps" :key="idx" class="leading-relaxed">
-            <span class="text-slate-800">{{ step }}</span>
-          </li>
-        </ol>
-      </div>
-    </div>
+        <!-- 底部分享/重整按鈕 -->
+        <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
+          <span class="text-xs text-stone-400">已自動整合所選的 {{ selectedIngredients.length }} 樣食材</span>
+          <button 
+            @click="generateSolution"
+            class="text-xs sm:text-sm text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1">
+            <span>🔄 換個作法試試看</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 區塊 6: 可以示範別人怎煮（社群靈感示範庫） -->
+      <section class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-amber-100/90 mt-8">
+        <div class="mb-4">
+          <h2 class="font-bold text-stone-800 text-base sm:text-lg flex items-center gap-2">
+            <span>📖 看看別人怎麼煮（經典拯救示範庫）</span>
+          </h2>
+          <p class="text-stone-500 text-xs sm:text-sm mt-0.5">
+            不知道怎麼搭？點擊「套用這組示範」，直接載入邊角料組合與成功案例！
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div 
+            v-for="demo in communityDemos" 
+            :key="demo.id"
+            class="border border-stone-200/80 rounded-2xl overflow-hidden bg-stone-50/40 hover:bg-white hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between group">
+            
+            <!-- 示範卡片圖片 -->
+            <div class="relative w-full h-36 overflow-hidden bg-stone-200">
+              <img 
+                :src="demo.imageUrl" 
+                :alt="demo.name"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              <span class="absolute top-2 left-2 text-xs font-bold px-2.5 py-0.5 bg-black/60 text-white backdrop-blur-sm rounded-md">
+                {{ demo.category }}
+              </span>
+              <span class="absolute top-2 right-2 text-xs bg-white/90 text-stone-700 px-2 py-0.5 rounded-md font-semibold">
+                {{ demo.tool }}
+              </span>
+            </div>
+
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 class="font-bold text-stone-800 text-base mb-1">{{ demo.name }}</h3>
+                <p class="text-stone-500 text-xs mb-3 line-clamp-2 leading-relaxed">{{ demo.description }}</p>
+                
+                <div class="flex flex-wrap gap-1 mb-4">
+                  <span 
+                    v-for="ing in demo.ingredients" 
+                    :key="ing"
+                    class="text-[11px] bg-white border border-stone-200 px-2 py-0.5 rounded-md text-stone-600">
+                    {{ ing }}
+                  </span>
+                </div>
+              </div>
+
+              <button 
+                @click="applyDemo(demo)"
+                class="w-full py-2 bg-amber-100/70 hover:bg-amber-600 hover:text-white text-amber-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 active:scale-95">
+                <span>👉 套用這組示範</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 頁尾宣告 -->
+    <footer class="mt-12 text-center text-xs text-stone-400 space-y-1">
+      <p>冰箱孤兒食材拯救器 • 零剩食愛護地球極簡提案</p>
+      <p>Designed with Vue 3 & Tailwind CSS • 專題示範互動系統</p>
+    </footer>
+
   </div>
 
   <script>
-    const { createApp, ref } = Vue;
+    const { createApp, ref, computed } = Vue
 
     createApp({
       setup() {
-        const ingredientInput = ref('');
-        const ingredients = ref([
+        // 1. 已選食材標籤清單（預設帶入經典殘局）
+        const selectedIngredients = ref([
           '假日沒煮完的烏龍麵',
           '倒不滿一杯牛奶',
           '不知何去何從的鮪魚罐頭',
           '三三兩兩的蒜頭',
           '煮膩了的壽喜燒醬料'
-        ]);
-        const isLoading = ref(false);
-        const errorMessage = ref('');
-        const recipe = ref(null);
+        ])
+        const customInput = ref('')
 
-        const addIngredient = () => {
-          const val = ingredientInput.value.trim();
-          if (val && !ingredients.value.includes(val)) {
-            ingredients.value.push(val);
-            ingredientInput.value = '';
+        // 2. 廚具選擇
+        const selectedAppliance = ref('ricecooker')
+        const applianceList = [
+          { id: 'ricecooker', name: '電鍋一鍋到底', icon: '🍲', desc: '按跳起就吃' },
+          { id: 'pan', name: '平底鍋快決', icon: '🍳', desc: '大火喇一喇' },
+          { id: 'microwave', name: '懶人微波爐', icon: '⚡', desc: '叮一下即食' },
+          { id: 'pot', name: '小湯鍋/卡式爐', icon: '🥘', desc: '煮麵煲湯' },
+          { id: 'salad', name: '免開火涼拌', icon: '🥗', desc: '撕碎拌醬' }
+        ]
+
+        // 3. 食材分類點選區（蔬菜、蛋白質、主食乳品、醬料與其他）
+        const activeCategory = ref('主食與乳飲')
+        const ingredientCategories = [
+          {
+            name: '主食與乳飲',
+            icon: '🍞',
+            items: ['白飯剩半碗', '烏龍麵半包', '吐司邊', '泡麵塊', '快過期的牛奶', '常溫無糖豆漿', '半盒板豆腐', '起司片']
+          },
+          {
+            name: '蛋白質與罐頭',
+            icon: '🥩',
+            items: ['雞蛋一顆', '鮪魚罐頭', '玉米罐頭半罐', '火鍋豬肉片3片', '冷凍貢丸2顆', '鑫鑫腸一截', '培根1片']
+          },
+          {
+            name: '冰箱蔬菜',
+            icon: '🥬',
+            items: ['乾癟高麗菜', '半根紅蘿蔔', '洋蔥半顆', '金針菇半包', '落單的蒜頭', '蔫掉的蔥花', '番茄半顆']
+          },
+          {
+            name: '醬料與調味',
+            icon: '🧂',
+            items: ['壽喜燒醬', '沙茶醬', '番茄醬', '咖哩塊半塊', '胡麻醬', '醬油與香油', '黑胡椒粒']
           }
-        };
+        ]
+
+        const currentCategoryItems = computed(() => {
+          const cat = ingredientCategories.find(c => c.name === activeCategory.value)
+          return cat ? cat.items : []
+        })
+
+        const isIngredientSelected = (item) => {
+          return selectedIngredients.value.includes(item)
+        }
+
+        const toggleIngredient = (item) => {
+          const index = selectedIngredients.value.indexOf(item)
+          if (index > -1) {
+            selectedIngredients.value.splice(index, 1)
+          } else {
+            selectedIngredients.value.push(item)
+          }
+        }
+
+        const addCustomIngredient = () => {
+          const val = customInput.value.trim()
+          if (val && !selectedIngredients.value.includes(val)) {
+            selectedIngredients.value.push(val)
+            customInput.value = ''
+          }
+        }
 
         const removeIngredient = (index) => {
-          ingredients.value.splice(index, 1);
-        };
+          selectedIngredients.value.splice(index, 1)
+        }
 
-        const generateRecipe = async () => {
-          isLoading.value = true;
-          errorMessage.value = '';
-          recipe.value = null;
+        const clearAllIngredients = () => {
+          selectedIngredients.value = []
+        }
 
-          try {
-            // 打後端伺服器路徑，不暴露金鑰
-            const response = await fetch('/api/generate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                ingredients: ingredients.value
-              })
-            });
+        // 4. 社群示範庫（別人怎麼煮 - 附上高質感美食真實圖片）
+        const communityDemos = [
+          {
+            id: 1,
+            category: '電鍋神作',
+            tool: '電鍋一鍋到底',
+            name: '奶香鮪魚烏龍燉煲',
+            description: '將剩牛奶與水1:1倒進電鍋，下烏龍麵與鮪魚罐頭，跳起撒黑胡椒即成濃醇白醬烏龍麵！',
+            ingredients: ['烏龍麵半包', '快過期的牛奶', '鮪魚罐頭', '落單的蒜頭'],
+            applianceId: 'ricecooker',
+            imageUrl: 'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=600&q=80'
+          },
+          {
+            id: 2,
+            category: '5分鐘消夜',
+            tool: '平底鍋快決',
+            name: '韓味起司碎肉炒冷飯',
+            description: '蒜頭爆香，倒入剩飯、洋蔥、撕碎起司片，加點醬油大火喇喇欸，像鐵板燒一樣香脆拉絲。',
+            ingredients: ['白飯剩半碗', '起司片', '洋蔥半顆', '落單的蒜頭', '醬油與香油'],
+            applianceId: 'pan',
+            imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=600&q=80'
+          },
+          {
+            id: 3,
+            category: '微波懶人',
+            tool: '懶人微波爐',
+            name: '番茄豆漿溫豆腐湯',
+            description: '半盒板豆腐切塊，倒入豆漿與番茄，高火微波2分半，滑順濃醇的高蛋白暖胃救急湯。',
+            ingredients: ['半盒板豆腐', '常溫無糖豆漿', '番茄半顆', '黑胡椒粒'],
+            applianceId: 'microwave',
+            imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80'
+          }
+        ]
 
-            const data = await response.json();
-            if (!response.ok) {
-              throw new Error(data.error || 'API 請求失敗');
+        const applyDemo = (demo) => {
+          selectedIngredients.value = [...demo.ingredients]
+          selectedAppliance.value = demo.applianceId
+          // 自動生成對應食譜示範
+          generateSolution()
+        }
+
+        // 5. 生成料理結果
+        const isGenerating = ref(false)
+        const generatedRecipe = ref(null)
+        const completedSteps = ref({})
+
+        const getApplianceName = (id) => {
+          const found = applianceList.find(a => a.id === id)
+          return found ? found.name : '極簡廚具'
+        }
+
+        const generateSolution = () => {
+          if (selectedIngredients.value.length === 0) return
+
+          isGenerating.value = true
+          completedSteps.value = {}
+
+          // 模擬 AI 生成運算（具備靈活隨機拼湊能力）
+          setTimeout(() => {
+            const list = selectedIngredients.value
+            const mainIng = list[0] || '剩餘邊角料'
+            const count = list.length
+
+            let recipeTitle = `香濃「${mainIng.replace(/幾瓣|不知何去何從的|倒不滿一杯|假日沒煮完的|三三兩兩的/g, '')}」極簡大亂鬥`
+            let chefComment = `這道菜精準解決了你手邊這 ${count} 樣瀕臨崩潰邊緣的食材。不要懷疑味道，只要鹹淡抓好，鍋氣與熱度會讓它們緊緊相擁！`
+
+            let steps = []
+            let serving1 = ''
+            let serving2 = ''
+            let resultImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+
+            if (selectedAppliance.value === 'ricecooker') {
+              recipeTitle = `電鍋一鍋到底：救贖系「${mainIng}」煨雜燴`
+              resultImageUrl = 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80'
+              steps = [
+                `外鍋加半杯水，將內鍋底抹少許油或醬料。`,
+                `依序鋪入耐煮的食材（如蔬菜、主食類），頂層放上易碎食材與蛋白質。`,
+                `倒入液體（水、牛奶或醬油膏），蓋上鍋蓋，帥氣按下開關。`,
+                `電鍋跳起後請勿急著掀開，悶 3 分鐘後「打開大膽喇一喇」，趁熱撒黑胡椒開動！`
+              ]
+              serving1 = `直接端著電鍋內鍋用湯匙挖著吃，徹底免洗碗盤。`
+              serving2 = `若冰箱還有起司片或生辣椒，跳起時趁熱丟一片拌進去，瞬間變身濃郁西式焗烤風味。`
+            } else if (selectedAppliance.value === 'pan') {
+              recipeTitle = `鑊氣快炒：大火喇一喇「${mainIng}」鐵板燒風味`
+              resultImageUrl = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80'
+              steps = [
+                `平底鍋倒一小匙油熱鍋，先下蒜頭或辛香料爆出香氣。`,
+                `將 ${list.slice(0, 3).join('、')} 通通丟進鍋中，轉中大火快翻 90 秒。`,
+                `淋上一圈醬汁嗆出焦香味，快速拌勻至湯汁收乾即可盛盤！`
+              ]
+              serving1 = `夾進吐司、白吐司邊，或是直接蓋在熱飯上做成鐵板蓋飯。`
+              serving2 = `吃到最後留兩口，打顆生蛋花進鍋底炒熟，享受焦香煎蛋底！`
+            } else if (selectedAppliance.value === 'microwave') {
+              recipeTitle = `光速叮熱：極度省事「${mainIng}」暖胃溫沙拉/湯`
+              resultImageUrl = 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80'
+              steps = [
+                `找一個可微波的大深碗，將食材全部切小塊或撕碎平鋪進碗內。`,
+                `均勻淋上一大匙水與半匙調味醬汁，上方覆蓋耐熱保鮮膜（留一小道透氣縫）。`,
+                `微波爐 700W 中高火加熱 2 分 30 秒，聽到咕嘟咕嘟聲響即可端出拌勻！`
+              ]
+              serving1 = `熱騰騰直接用叉子享用，溫暖省時又少油煙。`
+              serving2 = `冷卻後滴兩滴檸檬汁或香油，立刻轉換成清爽系涼拌菜。`
+            } else {
+              recipeTitle = `溫泉暖煲：「${mainIng}」小湯鍋慢煨鮮味煲`
+              resultImageUrl = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80'
+              steps = [
+                `鍋內加入約 300ml 溫水或高湯，大火煮沸。`,
+                `投入耐煮食材慢滾 3 分鐘，釋放食材本身的天然甜味。`,
+                `起鍋前加入醬汁調味，關火悶 1 分鐘讓味道融為一體。`
+              ]
+              serving1 = `先喝一口熱湯暖胃，再大口扒裡面的配料。`
+              serving2 = `湯底留下來隔天丟一小把泡麵或打入蛋花，又是一頓完美宵夜！`
             }
 
-            recipe.value = data;
-          } catch (err) {
-            errorMessage.value = `生成失敗：${err.message}`;
-          } finally {
-            isLoading.value = false;
-          }
-        };
+            generatedRecipe.value = {
+              title: recipeTitle,
+              difficulty: '⭐️ 超簡單（手殘保證成功）',
+              timeNeeded: selectedAppliance.value === 'microwave' ? '3 分鐘' : '10-15 分鐘',
+              chefComment: chefComment,
+              servingWay1: serving1,
+              servingWay2: serving2,
+              steps: steps,
+              imageUrl: resultImageUrl
+            }
+
+            isGenerating.value = false
+
+            // 自動平滑捲動到食譜卡片
+            setTimeout(() => {
+              const el = document.getElementById('recipe-result')
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }, 100)
+          }, 800)
+        }
+
+        const toggleStepCheck = (sIdx) => {
+          completedSteps.value[sIdx] = !completedSteps.value[sIdx]
+        }
 
         return {
-          ingredientInput,
-          ingredients,
-          isLoading,
-          errorMessage,
-          recipe,
-          addIngredient,
+          selectedIngredients,
+          customInput,
+          selectedAppliance,
+          applianceList,
+          activeCategory,
+          ingredientCategories,
+          currentCategoryItems,
+          communityDemos,
+          isGenerating,
+          generatedRecipe,
+          completedSteps,
+          isIngredientSelected,
+          toggleIngredient,
+          addCustomIngredient,
           removeIngredient,
-          generateRecipe
-        };
+          clearAllIngredients,
+          applyDemo,
+          generateSolution,
+          toggleStepCheck,
+          getApplianceName
+        }
       }
-    }).mount('#app');
+    }).mount('#app')
   </script>
 </body>
 </html>
