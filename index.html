@@ -589,7 +589,69 @@
           generateSolution(false)
         }
 
-        // 5. 生成料理結果（結合 食材 + 廚具 + 六大餐期）
+        // 5. 智慧食材關鍵字配圖引擎（依據實際選取的食材與變奏次數挑選照片）
+        const pickMatchedFoodImage = (ingredientsList, applianceId, mealId, variant) => {
+          const text = ingredientsList.join(' ')
+
+          // 1) 若明確包含麵食
+          if (/烏龍麵|泡麵|麵|冬粉|意麵|義大利麵/.test(text)) {
+            const noodlePhotos = [
+              'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=800&q=80', // 日式湯烏龍
+              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80', // 暖心拉麵/湯麵
+              'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80'  // 醬拌炒麵
+            ]
+            return noodlePhotos[variant % noodlePhotos.length]
+          }
+
+          // 2) 若包含白飯/米飯類
+          if (/飯|粥|燉飯/.test(text)) {
+            const ricePhotos = [
+              'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80', // 黃金炒飯
+              'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80', // 蓋飯/燴飯碗
+              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'  // 豐盛蔬食米食碗
+            ]
+            return ricePhotos[variant % ricePhotos.length]
+          }
+
+          // 3) 若包含吐司、蛋、起司、培根或為早餐/下午茶
+          if (/吐司|麵包|蛋|起司|培根|熱狗|鑫鑫腸/.test(text) || mealId === 'breakfast' || mealId === 'teatime') {
+            const brunchPhotos = [
+              'https://images.unsplash.com/photo-1525351484163-7529414342d8?auto=format&fit=crop&w=800&q=80', // 滑蛋吐司早午餐
+              'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=800&q=80', // 酪梨/鮮蔬蛋料理
+              'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80'  // 歐姆蛋/烘蛋煎餅
+            ]
+            return brunchPhotos[variant % brunchPhotos.length]
+          }
+
+          // 4) 若包含豆腐、豆漿、番茄或湯鍋/微波暖湯
+          if (/豆腐|豆漿|番茄|貢丸|金針菇/.test(text) || applianceId === 'microwave' || applianceId === 'pot') {
+            const soupPhotos = [
+              'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80', // 濃郁番茄暖湯
+              'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=800&q=80', // 鮮蔬豆腐煲湯
+              'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80'  // 家常嫩肉鮮蔬燉煮
+            ]
+            return soupPhotos[variant % soupPhotos.length]
+          }
+
+          // 5) 涼拌或純蔬菜/肉片雜燴
+          if (applianceId === 'salad') {
+            const saladPhotos = [
+              'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // 色彩繽紛溫沙拉
+              'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80'  // 清爽時蔬拌盤
+            ]
+            return saladPhotos[variant % saladPhotos.length]
+          }
+
+          // 6) 通用無澱粉時蔬鮮肉家常料理（絕不出現烏龍麵）
+          const generalDishPhotos = [
+            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80', // 香煎/快炒家常拼盤
+            'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80', // 暖心時蔬鮮肉燉菜
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'  // 繽紛健康一碗料理
+          ]
+          return generalDishPhotos[variant % generalDishPhotos.length]
+        }
+
+        // 6. 生成料理結果（結合 食材 + 廚具 + 六大餐期）
         const isGenerating = ref(false)
         const generatedRecipe = ref(null)
         const completedSteps = ref({})
@@ -614,7 +676,7 @@
           if (selectedIngredients.value.length === 0) return
 
           if (isRetry) {
-            recipeVariantIndex.value = (recipeVariantIndex.value + 1) % 2
+            recipeVariantIndex.value = (recipeVariantIndex.value + 1) % 3
           } else {
             recipeVariantIndex.value = 0
           }
@@ -640,7 +702,7 @@
               mealServingExtra = '可以直接夾進吐司、捲進蛋餅皮，或配一杯溫豆漿/牛奶，五分鐘優雅出門！'
             } else if (mealId === 'brunch') {
               mealPrefix = '☀️ 睡到自然醒，吃到自然飽'
-              mealToneComment = '假日睡到自然醒的黃金時段，把早午餐合併成一盤豐盛拼盤或濃郁燴飯麵，一路飽到下午！'
+              mealToneComment = '假日睡到自然醒的黃金時段，把早午餐合併成一盤豐盛拼盤或濃郁燴料理，一路飽到下午！'
               mealServingExtra = '全部集中裝在一個大深盤裡，配上一杯冰美式或鮮奶茶，在家就能享受咖啡廳早午餐儀式感。'
             } else if (mealId === 'lunch') {
               mealPrefix = '🍱 品味你的中午'
@@ -664,12 +726,11 @@
             let steps = []
             let serving1 = mealServingExtra
             let serving2 = ''
-            let resultImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+            const resultImageUrl = pickMatchedFoodImage(list, selectedAppliance.value, mealId, variant)
 
             if (selectedAppliance.value === 'ricecooker') {
               if (variant === 0) {
                 recipeTitle = `${mealPrefix}：「${cleanMain}」電鍋一鍋濃醇煨雜燴`
-                resultImageUrl = 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80'
                 steps = [
                   `外鍋加半杯水，將內鍋底抹少許油或醬料防沾。`,
                   `依序鋪入耐煮的食材（如蔬菜、主食類），頂層放上易碎食材與蛋白質。`,
@@ -677,59 +738,77 @@
                   `電鍋跳起後悶 3 分鐘，「打開大膽喇一喇」，趁熱撒黑胡椒即可享用！`
                 ]
                 serving2 = `若冰箱還有起司片或生辣椒，跳起時趁熱丟一片拌進去，瞬間變身濃郁西式焗烤風味。`
-              } else {
+              } else if (variant === 1) {
                 recipeTitle = `${mealPrefix}：日式和風「${cleanMain}」電鍋蒸拌碗`
-                resultImageUrl = 'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=800&q=80'
                 steps = [
                   `把所有食材切成一口大小，全數集中鋪平在深碗或內鍋裡。`,
                   `淋上一大匙醬油與少許香油（不用加太多水），外鍋放 0.7 杯水按下開關。`,
                   `跳起後趁熱拌入現有醬料，利用餘溫快速拌勻成滑順醬汁！`
                 ]
-                serving2 = `加一點醋或檸檬汁提味，立刻變成開胃解膩的日式溫沙拉拌麵/飯。`
+                serving2 = `加一點醋或檸檬汁提味，立刻變成開胃解膩的日式溫沙拉拌料理。`
+              } else {
+                recipeTitle = `${mealPrefix}：暖胃高湯「${cleanMain}」電鍋鮮味燉盅`
+                steps = [
+                  `將所有食材放進深湯碗中，倒入蓋過食材 8 分滿的清水或豆漿/牛奶。`,
+                  `外鍋放 1 杯水按下開關，完全免顧火。`,
+                  `跳起後加入少許鹽巴與黑胡椒「喇一喇」調味即完成！`
+                ]
+                serving2 = `湯汁拿來泡吐司邊或蘇打餅乾吃，吸滿精華超級滿足。`
               }
             } else if (selectedAppliance.value === 'pan') {
               if (variant === 0) {
                 recipeTitle = `${mealPrefix}：大火喇一喇「${cleanMain}」鐵板燒風味`
-                resultImageUrl = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80'
                 steps = [
                   `平底鍋倒一小匙油熱鍋，先下蒜頭或辛香料爆出香氣。`,
                   `將 ${list.slice(0, 3).join('、')} 通通丟進鍋中，轉中大火快翻 90 秒。`,
                   `淋上一圈醬汁嗆出焦香味，快速拌勻至湯汁收乾即可盛盤！`
                 ]
                 serving2 = `吃到最後留兩口，打顆生蛋花進鍋底炒熟，享受焦香煎蛋底！`
-              } else {
+              } else if (variant === 1) {
                 recipeTitle = `${mealPrefix}：焦香「${cleanMain}」懶人大阪燒/酥脆煎餅`
-                resultImageUrl = 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80'
                 steps = [
                   `把所有食材切碎混在一起，加少許水或蛋液（若有吐司邊或碎餅乾也可撕碎加入增加黏性）。`,
                   `平底鍋抹油小火慢煎，將食材壓成圓餅狀，煎 3 分鐘至底部金黃酥脆。`,
                   `翻面再煎 2 分鐘，起鍋前表面刷上現有醬料與黑胡椒即可！`
                 ]
                 serving2 = `擠上美乃滋或番茄醬，秒變夜市豪華版綜合煎餅。`
+              } else {
+                recipeTitle = `${mealPrefix}：半熟蓋煎「${cleanMain}」滑嫩親子/時蔬鍋`
+                steps = [
+                  `平底鍋加 3 大匙水與現有醬汁煮滾，將食材鋪平在鍋底中小火燜煮 2 分鐘。`,
+                  `若有雞蛋或起司片，直接鋪在最上層蓋鍋蓋再悶 1 分鐘至融化滑嫩。`,
+                  `整鍋直接上桌（少洗一個盤子），用湯匙挖著吃超痛快！`
+                ]
+                serving2 = `撒上蔥花或海苔碎，賣相直接升級成日式定食主菜。`
               }
             } else if (selectedAppliance.value === 'microwave') {
               if (variant === 0) {
                 recipeTitle = `${mealPrefix}：3分鐘「${cleanMain}」微波暖胃濃湯盅`
-                resultImageUrl = 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80'
                 steps = [
                   `找一個可微波的大深碗，將食材全部切小塊或撕碎平鋪進碗內。`,
                   `倒入蓋過一半食材的液體（水、豆漿或牛奶）與調味料，留一道透氣縫蓋上保鮮膜。`,
                   `微波爐 700W 中高火加熱 2 分 30 秒，聽到咕嘟咕嘟聲響即可端出拌勻！`
                 ]
                 serving2 = `把吐司邊或餅乾撕碎丟進湯裡吸飽湯汁，飽足感與口感層次直接翻倍。`
-              } else {
+              } else if (variant === 1) {
                 recipeTitle = `${mealPrefix}：光速「${cleanMain}」濃醬乾拌碗`
-                resultImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
                 steps = [
                   `將食材鋪在深碗中，只灑 1 大匙水保持濕潤，中火微波 2 分鐘。`,
                   `取出後趁熱把現有醬料（沙茶、壽喜燒醬或起司）直接拌進去融化。`,
                   `上下翻拌均勻，讓每塊邊角料都裹滿濃郁醬汁就完成！`
                 ]
                 serving2 = `放涼後冰進冰箱 10 分鐘，口感會變得更 Q 彈入味。`
+              } else {
+                recipeTitle = `${mealPrefix}：免顧火「${cleanMain}」微波焗烤/蒸蛋盅`
+                steps = [
+                  `將食材切丁放進馬克杯或深碗中，加入少許牛奶或打散的蛋液（若無則加 2 匙水與醬汁）。`,
+                  `表面鋪上撕碎的起司片或胡椒粒，微波 2 分鐘至膨脹定型。`,
+                  `取出稍涼 30 秒即可用湯匙挖著享用！`
+                ]
+                serving2 = `搭配一杯無糖綠茶或黑咖啡，就是零負擔的輕食餐。`
               }
             } else if (selectedAppliance.value === 'salad') {
               recipeTitle = `${mealPrefix}：免開火「${cleanMain}」手撕特調溫沙拉`
-              resultImageUrl = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80'
               steps = [
                 `完全不用開火！將可直接食用的食材全部手撕或切成一口大小。`,
                 `丟進保鮮盒或大碗公裡，淋上胡麻醬、醬油或現有醬汁。`,
@@ -738,13 +817,12 @@
               serving2 = `夾進吐司或配蘇打餅乾一起吃，口感層次更豐富。`
             } else {
               recipeTitle = `${mealPrefix}：「${cleanMain}」小湯鍋慢煨鮮味煲`
-              resultImageUrl = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80'
               steps = [
                 `鍋內加入約 300ml 溫水或高湯，大火煮沸。`,
                 `投入耐煮食材慢滾 3 分鐘，釋放食材本身的天然甜味。`,
                 `起鍋前加入醬汁調味，關火悶 1 分鐘讓味道融為一體。`
               ]
-              serving2 = `湯底留下來隔天丟一小把泡麵或打入蛋花，又是一頓完美餐點！`
+              serving2 = `湯底留下來隔天丟一小把主食或打入蛋花，又是一頓完美餐點！`
             }
 
             const fastMeals = ['breakfast', 'teatime', 'latenight']
