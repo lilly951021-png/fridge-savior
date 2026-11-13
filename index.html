@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="notranslate" translate="no">
 <head>
   <meta charset="UTF-8">
+  <meta name="google" content="notranslate">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>冰箱孤兒食材拯救器 - 打開喇一喇就能吃！</title>
   <!-- Tailwind CSS CDN -->
@@ -35,7 +36,6 @@
     }
   </script>
   <style>
-    /* 自訂平滑過渡與隱藏滾動條 */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -97,7 +97,7 @@
     <main class="space-y-6">
 
       <!-- 區塊 1: 當前冰箱殘局 (標籤庫 + 輸入) -->
-      <section class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-amber-100/90 relative overflow-hidden">
+      <section id="ingredient-editor" class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-amber-100/90 relative overflow-hidden transition-all">
         <div class="flex items-center justify-between mb-3">
           <label class="font-bold text-stone-800 text-base sm:text-lg flex items-center gap-2">
             <span>🧊 冰箱殘局清單</span>
@@ -117,6 +117,7 @@
         <div class="flex gap-2 mb-4">
           <div class="relative flex-1">
             <input 
+              ref="ingredientInputRef"
               v-model="customInput" 
               @keyup.enter="addCustomIngredient"
               type="text" 
@@ -211,7 +212,7 @@
       <!-- 區塊 4: 召喚料理按鈕 -->
       <div class="pt-2">
         <button 
-          @click="generateSolution"
+          @click="generateSolution(false)"
           :disabled="selectedIngredients.length === 0 || isGenerating"
           class="w-full py-4 px-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 disabled:from-stone-300 disabled:to-stone-400 text-white rounded-2xl font-extrabold text-base sm:text-lg shadow-lg shadow-amber-600/30 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2">
           <span v-if="isGenerating" class="flex items-center gap-2">
@@ -241,7 +242,7 @@
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
           <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between text-white">
             <span class="text-xs bg-amber-600/90 backdrop-blur-sm px-3 py-1 rounded-full font-semibold">
-              📸 拯救成果情境示意圖
+              📸 拯救成果情境示意圖（提案 #{{ recipeVariantIndex + 1 }}）
             </span>
             <span class="text-[11px] text-amber-100/90">
               美味程度以真實喇一喇為準
@@ -318,14 +319,21 @@
           </ol>
         </div>
 
-        <!-- 底部分享/重整按鈕 -->
-        <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
-          <span class="text-xs text-stone-400">已自動整合所選的 {{ selectedIngredients.length }} 樣食材</span>
-          <button 
-            @click="generateSolution"
-            class="text-xs sm:text-sm text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1">
-            <span>🔄 換個作法試試看</span>
-          </button>
+        <!-- 底部雙軌彈性操作：可同食材換作法，也可回去微調食材 -->
+        <div class="mt-6 pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3">
+          <span class="text-xs text-stone-400">已整合 {{ selectedIngredients.length }} 樣食材 • 可自由切換做法或調整清單</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <button 
+              @click="generateSolution(true)"
+              class="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95">
+              <span>🔄 同食材換個作法</span>
+            </button>
+            <button 
+              @click="scrollToEditor"
+              class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95">
+              <span>✏️ 修改食材 / 換廚具</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -411,6 +419,7 @@
           '煮膩了的壽喜燒醬料'
         ])
         const customInput = ref('')
+        const ingredientInputRef = ref(null)
 
         // 2. 廚具選擇
         const selectedAppliance = ref('ricecooker')
@@ -422,7 +431,7 @@
           { id: 'salad', name: '免開火涼拌', icon: '🥗', desc: '撕碎拌醬' }
         ]
 
-        // 3. 食材分類點選區（蔬菜、蛋白質、主食乳品、醬料與其他）
+        // 3. 食材分類點選區
         const activeCategory = ref('主食與乳飲')
         const ingredientCategories = [
           {
@@ -481,7 +490,22 @@
           selectedIngredients.value = []
         }
 
-        // 4. 社群示範庫（別人怎麼煮 - 附上高質感美食真實圖片）
+        // 平滑返回上方清單並提示聚焦
+        const scrollToEditor = () => {
+          const editorEl = document.getElementById('ingredient-editor')
+          if (editorEl) {
+            editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            editorEl.classList.add('ring-4', 'ring-amber-300/60')
+            setTimeout(() => {
+              editorEl.classList.remove('ring-4', 'ring-amber-300/60')
+            }, 1400)
+          }
+          if (ingredientInputRef.value) {
+            setTimeout(() => ingredientInputRef.value.focus(), 500)
+          }
+        }
+
+        // 4. 社群示範庫
         const communityDemos = [
           {
             id: 1,
@@ -518,34 +542,43 @@
         const applyDemo = (demo) => {
           selectedIngredients.value = [...demo.ingredients]
           selectedAppliance.value = demo.applianceId
-          // 自動生成對應食譜示範
-          generateSolution()
+          generateSolution(false)
         }
 
-        // 5. 生成料理結果
+        // 5. 生成料理結果（支援同食材多變奏切換）
         const isGenerating = ref(false)
         const generatedRecipe = ref(null)
         const completedSteps = ref({})
+        const recipeVariantIndex = ref(0)
 
         const getApplianceName = (id) => {
           const found = applianceList.find(a => a.id === id)
           return found ? found.name : '極簡廚具'
         }
 
-        const generateSolution = () => {
+        const generateSolution = (isRetry = false) => {
           if (selectedIngredients.value.length === 0) return
+
+          if (isRetry) {
+            recipeVariantIndex.value = (recipeVariantIndex.value + 1) % 2
+          } else {
+            recipeVariantIndex.value = 0
+          }
 
           isGenerating.value = true
           completedSteps.value = {}
 
-          // 模擬 AI 生成運算（具備靈活隨機拼湊能力）
           setTimeout(() => {
             const list = selectedIngredients.value
             const mainIng = list[0] || '剩餘邊角料'
+            const cleanMain = mainIng.replace(/幾瓣|不知何去何從的|倒不滿一杯|假日沒煮完的|三三兩兩的/g, '')
             const count = list.length
+            const variant = recipeVariantIndex.value
 
-            let recipeTitle = `香濃「${mainIng.replace(/幾瓣|不知何去何從的|倒不滿一杯|假日沒煮完的|三三兩兩的/g, '')}」極簡大亂鬥`
-            let chefComment = `這道菜精準解決了你手邊這 ${count} 樣瀕臨崩潰邊緣的食材。不要懷疑味道，只要鹹淡抓好，鍋氣與熱度會讓它們緊緊相擁！`
+            let recipeTitle = ''
+            let chefComment = variant === 0
+              ? `這道菜精準解決了你手邊這 ${count} 樣瀕臨崩潰邊緣的食材。不要懷疑味道，只要鹹淡抓好，鍋氣與熱度會讓它們緊緊相擁！`
+              : `換個思路不換料！把這 ${count} 樣食材改用不同的調味與收汁節奏處理，口感瞬間從家常菜變成深夜食堂下酒菜！`
 
             let steps = []
             let serving1 = ''
@@ -553,38 +586,84 @@
             let resultImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
 
             if (selectedAppliance.value === 'ricecooker') {
-              recipeTitle = `電鍋一鍋到底：救贖系「${mainIng}」煨雜燴`
-              resultImageUrl = 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80'
-              steps = [
-                `外鍋加半杯水，將內鍋底抹少許油或醬料。`,
-                `依序鋪入耐煮的食材（如蔬菜、主食類），頂層放上易碎食材與蛋白質。`,
-                `倒入液體（水、牛奶或醬油膏），蓋上鍋蓋，帥氣按下開關。`,
-                `電鍋跳起後請勿急著掀開，悶 3 分鐘後「打開大膽喇一喇」，趁熱撒黑胡椒開動！`
-              ]
-              serving1 = `直接端著電鍋內鍋用湯匙挖著吃，徹底免洗碗盤。`
-              serving2 = `若冰箱還有起司片或生辣椒，跳起時趁熱丟一片拌進去，瞬間變身濃郁西式焗烤風味。`
+              if (variant === 0) {
+                recipeTitle = `電鍋一鍋到底：救贖系「${cleanMain}」濃醇煨雜燴`
+                resultImageUrl = 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80'
+                steps = [
+                  `外鍋加半杯水，將內鍋底抹少許油或醬料防沾。`,
+                  `依序鋪入耐煮的食材（如蔬菜、主食類），頂層放上易碎食材與蛋白質。`,
+                  `倒入液體（水、牛奶或醬油膏），蓋上鍋蓋，帥氣按下開關。`,
+                  `電鍋跳起後請勿急著掀開，悶 3 分鐘後「打開大膽喇一喇」，趁熱撒黑胡椒開動！`
+                ]
+                serving1 = `直接端著電鍋內鍋用湯匙挖著吃，徹底免洗碗盤。`
+                serving2 = `若冰箱還有起司片或生辣椒，跳起時趁熱丟一片拌進去，瞬間變身濃郁西式焗烤風味。`
+              } else {
+                recipeTitle = `電鍋蒸拌變奏：日式和風「${cleanMain}」蒸炊飯/麵`
+                resultImageUrl = 'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=800&q=80'
+                steps = [
+                  `把所有食材切成一口大小，全數集中鋪平在深碗或內鍋裡。`,
+                  `淋上一大匙醬油與少許香油（不用加太多水，保留乾爽香氣），外鍋放 0.7 杯水。`,
+                  `跳起後趁熱打入一顆蛋或拌入現有醬料，利用餘溫快速拌勻成滑順醬汁！`
+                ]
+                serving1 = `配一碗熱茶或海苔碎直接大口扒完，清爽不油膩。`
+                serving2 = `加一點醋或檸檬汁提味，立刻變成開胃解膩的日式溫沙拉拌麵。`
+              }
             } else if (selectedAppliance.value === 'pan') {
-              recipeTitle = `鑊氣快炒：大火喇一喇「${mainIng}」鐵板燒風味`
-              resultImageUrl = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80'
-              steps = [
-                `平底鍋倒一小匙油熱鍋，先下蒜頭或辛香料爆出香氣。`,
-                `將 ${list.slice(0, 3).join('、')} 通通丟進鍋中，轉中大火快翻 90 秒。`,
-                `淋上一圈醬汁嗆出焦香味，快速拌勻至湯汁收乾即可盛盤！`
-              ]
-              serving1 = `夾進吐司、白吐司邊，或是直接蓋在熱飯上做成鐵板蓋飯。`
-              serving2 = `吃到最後留兩口，打顆生蛋花進鍋底炒熟，享受焦香煎蛋底！`
+              if (variant === 0) {
+                recipeTitle = `鑊氣快炒：大火喇一喇「${cleanMain}」鐵板燒風味`
+                resultImageUrl = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80'
+                steps = [
+                  `平底鍋倒一小匙油熱鍋，先下蒜頭或辛香料爆出香氣。`,
+                  `將 ${list.slice(0, 3).join('、')} 通通丟進鍋中，轉中大火快翻 90 秒。`,
+                  `淋上一圈醬汁嗆出焦香味，快速拌勻至湯汁收乾即可盛盤！`
+                ]
+                serving1 = `夾進吐司、白吐司邊，或是直接蓋在熱飯上做成鐵板蓋飯。`
+                serving2 = `吃到最後留兩口，打顆生蛋花進鍋底炒熟，享受焦香煎蛋底！`
+              } else {
+                recipeTitle = `平底鍋乾煎變奏：焦香「${cleanMain}」懶人大阪燒/煎餅`
+                resultImageUrl = 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80'
+                steps = [
+                  `把所有食材切碎混在一起，加少許水或蛋液（若有麵粉或碎餅乾也可加入增加黏性）。`,
+                  `平底鍋抹油小火慢煎，將食材壓成圓餅狀，煎 3 分鐘至底部金黃酥脆。`,
+                  `翻面再煎 2 分鐘，起鍋前表面刷上現有醬料與黑胡椒即可！`
+                ]
+                serving1 = `切塊直接當成居酒屋下酒菜或下午茶鹹派享用。`
+                serving2 = `擠上美乃滋或番茄醬，秒變夜市豪華版綜合煎餅。`
+              }
             } else if (selectedAppliance.value === 'microwave') {
-              recipeTitle = `光速叮熱：極度省事「${mainIng}」暖胃溫沙拉/湯`
-              resultImageUrl = 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80'
+              if (variant === 0) {
+                recipeTitle = `光速叮熱：極度省事「${cleanMain}」暖胃濃湯盅`
+                resultImageUrl = 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80'
+                steps = [
+                  `找一個可微波的大深碗，將食材全部切小塊或撕碎平鋪進碗內。`,
+                  `倒入蓋過一半食材的液體（水、豆漿或牛奶）與調味料，留一道透氣縫蓋上保鮮膜。`,
+                  `微波爐 700W 中高火加熱 2 分 30 秒，聽到咕嘟咕嘟聲響即可端出拌勻！`
+                ]
+                serving1 = `熱騰騰直接用湯匙享用，溫暖省時又零油煙。`
+                serving2 = `把吐司邊或餅乾撕碎丟進湯裡吸飽湯汁，飽足感直接翻倍。`
+              } else {
+                recipeTitle = `微波乾拌變奏：3 分鐘「${cleanMain}」濃醬乾拌碗`
+                resultImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+                steps = [
+                  `將食材鋪在深碗中，只灑 1 大匙水保持濕潤，中火微波 2 分鐘。`,
+                  `取出後趁熱把現有醬料（沙茶、壽喜燒醬或起司）直接拌進去融化。`,
+                  `上下翻拌均勻，讓每塊邊角料都裹滿濃郁醬汁就完成！`
+                ]
+                serving1 = `當作正餐配菜或宵夜乾拌麵/飯，醬香濃郁超下飯。`
+                serving2 = `放涼後冰進冰箱 10 分鐘，口感會變得更 Q 彈入味。`
+              }
+            } else if (selectedAppliance.value === 'salad') {
+              recipeTitle = `零開火極簡：清爽系「${cleanMain}」手撕特調溫沙拉`
+              resultImageUrl = 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80'
               steps = [
-                `找一個可微波的大深碗，將食材全部切小塊或撕碎平鋪進碗內。`,
-                `均勻淋上一大匙水與半匙調味醬汁，上方覆蓋耐熱保鮮膜（留一小道透氣縫）。`,
-                `微波爐 700W 中高火加熱 2 分 30 秒，聽到咕嘟咕嘟聲響即可端出拌勻！`
+                `完全不用開火！將可直接食用的食材全部手撕或切成一口大小。`,
+                `丟進保鮮盒或大碗公裡，淋上胡麻醬、醬油或現有醬汁。`,
+                `蓋上蓋子用力搖晃 10 秒鐘（或用筷子喇一喇），讓醬汁均勻附著即可開吃！`
               ]
-              serving1 = `熱騰騰直接用叉子享用，溫暖省時又少油煙。`
-              serving2 = `冷卻後滴兩滴檸檬汁或香油，立刻轉換成清爽系涼拌菜。`
+              serving1 = `爽脆零負擔，夏天沒胃口或半夜不想洗鍋子的最高境界。`
+              serving2 = `夾進吐司或配蘇打餅乾一起吃，口感層次更豐富。`
             } else {
-              recipeTitle = `溫泉暖煲：「${mainIng}」小湯鍋慢煨鮮味煲`
+              recipeTitle = `溫泉暖煲：「${cleanMain}」小湯鍋慢煨鮮味煲`
               resultImageUrl = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80'
               steps = [
                 `鍋內加入約 300ml 溫水或高湯，大火煮沸。`,
@@ -598,7 +677,7 @@
             generatedRecipe.value = {
               title: recipeTitle,
               difficulty: '⭐️ 超簡單（手殘保證成功）',
-              timeNeeded: selectedAppliance.value === 'microwave' ? '3 分鐘' : '10-15 分鐘',
+              timeNeeded: selectedAppliance.value === 'microwave' || selectedAppliance.value === 'salad' ? '3 分鐘' : '10-15 分鐘',
               chefComment: chefComment,
               servingWay1: serving1,
               servingWay2: serving2,
@@ -608,12 +687,11 @@
 
             isGenerating.value = false
 
-            // 自動平滑捲動到食譜卡片
             setTimeout(() => {
               const el = document.getElementById('recipe-result')
               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
             }, 100)
-          }, 800)
+          }, 700)
         }
 
         const toggleStepCheck = (sIdx) => {
@@ -623,6 +701,7 @@
         return {
           selectedIngredients,
           customInput,
+          ingredientInputRef,
           selectedAppliance,
           applianceList,
           activeCategory,
@@ -632,11 +711,13 @@
           isGenerating,
           generatedRecipe,
           completedSteps,
+          recipeVariantIndex,
           isIngredientSelected,
           toggleIngredient,
           addCustomIngredient,
           removeIngredient,
           clearAllIngredients,
+          scrollToEditor,
           applyDemo,
           generateSolution,
           toggleStepCheck,
