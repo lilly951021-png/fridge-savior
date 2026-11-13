@@ -475,7 +475,7 @@
           {
             name: '主食與乳飲',
             icon: '🍞',
-            items: ['白飯剩半碗', '烏龍麵半包', '吐司邊', '泡麵塊', '快過期的牛奶', '常溫無糖豆漿', '半盒板豆腐', '起司片']
+            items: ['白飯剩半碗', '烏龍麵半包', '吐司邊', '泡麵塊', '冬粉一把', '快過期的牛奶', '常溫無糖豆漿', '半盒板豆腐', '起司片']
           },
           {
             name: '蛋白質與罐頭',
@@ -589,21 +589,39 @@
           generateSolution(false)
         }
 
-        // 5. 智慧食材關鍵字配圖引擎（依據實際選取的食材與變奏次數挑選照片）
+        // 5. 智慧食材關鍵字配圖引擎（精準區分冬粉、烏龍麵、泡麵、飯食與無澱粉料理）
         const pickMatchedFoodImage = (ingredientsList, applianceId, mealId, variant) => {
           const text = ingredientsList.join(' ')
 
-          // 1) 若明確包含麵食
-          if (/烏龍麵|泡麵|麵|冬粉|意麵|義大利麵/.test(text)) {
-            const noodlePhotos = [
-              'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=800&q=80', // 日式湯烏龍
-              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80', // 暖心拉麵/湯麵
-              'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80'  // 醬拌炒麵
+          // 1) 若明確包含冬粉/粉絲/米粉/河粉（絕不出現粗烏龍麵！）
+          if (/冬粉|粉絲|米粉|河粉|寬粉/.test(text)) {
+            const glassNoodlePhotos = [
+              'https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=800&q=80', // 亞洲風味細粉湯碗
+              'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&w=800&q=80', // 鮮蔬細粉熱湯
+              'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=800&q=80'  // 醬拌細粉絲碗
             ]
-            return noodlePhotos[variant % noodlePhotos.length]
+            return glassNoodlePhotos[variant % glassNoodlePhotos.length]
           }
 
-          // 2) 若包含白飯/米飯類
+          // 2) 若明確包含烏龍麵
+          if (/烏龍麵/.test(text)) {
+            const udonPhotos = [
+              'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=800&q=80', // 日式湯烏龍
+              'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80'  // 醬拌炒烏龍
+            ]
+            return udonPhotos[variant % udonPhotos.length]
+          }
+
+          // 3) 若包含泡麵、拉麵、意麵、義大利麵
+          if (/泡麵|拉麵|意麵|義大利麵|麵/.test(text)) {
+            const ramenPhotos = [
+              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80', // 暖心拉麵/泡麵
+              'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80'  // 醬香炒麵
+            ]
+            return ramenPhotos[variant % ramenPhotos.length]
+          }
+
+          // 4) 若包含白飯/米飯類
           if (/飯|粥|燉飯/.test(text)) {
             const ricePhotos = [
               'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80', // 黃金炒飯
@@ -613,7 +631,7 @@
             return ricePhotos[variant % ricePhotos.length]
           }
 
-          // 3) 若包含吐司、蛋、起司、培根或為早餐/下午茶
+          // 5) 若包含吐司、蛋、起司、培根或為早餐/下午茶
           if (/吐司|麵包|蛋|起司|培根|熱狗|鑫鑫腸/.test(text) || mealId === 'breakfast' || mealId === 'teatime') {
             const brunchPhotos = [
               'https://images.unsplash.com/photo-1525351484163-7529414342d8?auto=format&fit=crop&w=800&q=80', // 滑蛋吐司早午餐
@@ -623,7 +641,7 @@
             return brunchPhotos[variant % brunchPhotos.length]
           }
 
-          // 4) 若包含豆腐、豆漿、番茄或湯鍋/微波暖湯
+          // 6) 若包含豆腐、豆漿、番茄或湯鍋/微波暖湯
           if (/豆腐|豆漿|番茄|貢丸|金針菇/.test(text) || applianceId === 'microwave' || applianceId === 'pot') {
             const soupPhotos = [
               'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80', // 濃郁番茄暖湯
@@ -633,7 +651,7 @@
             return soupPhotos[variant % soupPhotos.length]
           }
 
-          // 5) 涼拌或純蔬菜/肉片雜燴
+          // 7) 涼拌或純蔬菜/肉片雜燴
           if (applianceId === 'salad') {
             const saladPhotos = [
               'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // 色彩繽紛溫沙拉
@@ -642,11 +660,11 @@
             return saladPhotos[variant % saladPhotos.length]
           }
 
-          // 6) 通用無澱粉時蔬鮮肉家常料理（絕不出現烏龍麵）
+          // 8) 通用無澱粉時蔬鮮肉家常料理
           const generalDishPhotos = [
-            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80', // 香煎/快炒家常拼盤
-            'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80', // 暖心時蔬鮮肉燉菜
-            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'  // 繽紛健康一碗料理
+            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
           ]
           return generalDishPhotos[variant % generalDishPhotos.length]
         }
