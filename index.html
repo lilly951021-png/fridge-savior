@@ -43,13 +43,6 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    @keyframes pulse-subtle {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.03); }
-    }
-    .animate-gentle {
-      animation: pulse-subtle 3s ease-in-out infinite;
-    }
   </style>
 </head>
 <body class="bg-amber-50/50 text-stone-800 font-sans min-h-screen selection:bg-amber-200">
@@ -138,7 +131,7 @@
           <span 
             v-for="(item, idx) in selectedIngredients" 
             :key="item"
-            class="group inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/70 rounded-full text-xs sm:text-sm font-medium transition-all shadow-xs animate-fadeIn">
+            class="group inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/70 rounded-full text-xs sm:text-sm font-medium transition-all shadow-xs">
             <span>{{ item }}</span>
             <button 
               @click="removeIngredient(idx)" 
@@ -254,24 +247,37 @@
         </button>
       </div>
 
-      <!-- 區塊 5: 生成成果卡片 -->
-      <section v-if="generatedRecipe" id="recipe-result" class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border-2 border-amber-300 animate-fadeIn">
+      <!-- 區塊 5: 生成成果卡片（100% 圖文相符的專屬料理視覺卡） -->
+      <section v-if="generatedRecipe" id="recipe-result" class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border-2 border-amber-300">
         
-        <!-- 美食情境封面圖與標籤 -->
-        <div class="relative w-full h-52 sm:h-64 rounded-2xl overflow-hidden mb-6 shadow-inner bg-stone-100">
-          <img 
-            :src="generatedRecipe.imageUrl" 
-            :alt="generatedRecipe.title"
-            class="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-            onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10"></div>
-          <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between text-white">
-            <span class="text-xs bg-amber-600/90 backdrop-blur-sm px-3 py-1 rounded-full font-semibold">
-              📸 {{ getMealTypeName(selectedMealType) }} • {{ getMealTypeTagline(selectedMealType) }}
-            </span>
-            <span class="text-[11px] text-amber-100/90 hidden sm:inline">
-              提案 #{{ recipeVariantIndex + 1 }} • 美味以真實喇一喇為準
+        <!-- 零穿幫專屬料理概念視覺橫幅（動態對應實際選取食材、廚具與餐期） -->
+        <div class="relative w-full rounded-2xl overflow-hidden mb-6 p-5 sm:p-6 bg-gradient-to-br from-amber-100 via-orange-50 to-amber-200/80 border border-amber-300/70">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl sm:text-4xl shrink-0 border border-amber-200">
+                {{ getApplianceIcon(selectedAppliance) }}
+              </div>
+              <div>
+                <div class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-white/80 px-2.5 py-0.5 rounded-full mb-1">
+                  <span>{{ getMealTypeIcon(selectedMealType) }} {{ getMealTypeName(selectedMealType) }}</span>
+                  <span>•</span>
+                  <span>{{ getMealTypeTagline(selectedMealType) }}</span>
+                </div>
+                <div class="text-xs text-amber-800/90 font-medium">
+                  本次下鍋救援的 {{ generatedRecipe.usedIngredients.length }} 樣真實食材（提案 #{{ recipeVariantIndex + 1 }}）：
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 動態列出本次實際使用的每一樣食材標籤，100% 圖文相符 -->
+          <div class="mt-4 pt-3 border-t border-amber-300/50 flex flex-wrap gap-1.5">
+            <span 
+              v-for="ing in generatedRecipe.usedIngredients" 
+              :key="ing"
+              class="inline-flex items-center gap-1 px-2.5 py-1 bg-white/90 text-stone-800 rounded-lg text-xs font-semibold shadow-2xs border border-amber-200/80">
+              <span class="text-amber-600">✦</span>
+              <span>{{ ing }}</span>
             </span>
           </div>
         </div>
@@ -290,7 +296,7 @@
           </div>
           <div class="text-right">
             <span class="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-xl text-xs font-semibold text-amber-800 border border-amber-200">
-              {{ getApplianceName(selectedAppliance) }}
+              {{ getApplianceIcon(selectedAppliance) }} {{ getApplianceName(selectedAppliance) }}
             </span>
           </div>
         </div>
@@ -348,7 +354,7 @@
 
         <!-- 底部雙軌彈性操作：可同食材換作法，也可回去微調食材 -->
         <div class="mt-6 pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3">
-          <span class="text-xs text-stone-400">已整合 {{ selectedIngredients.length }} 樣食材 • 可自由切換做法或調整清單</span>
+          <span class="text-xs text-stone-400">已整合 {{ generatedRecipe.usedIngredients.length }} 樣食材 • 可自由切換做法或調整清單</span>
           <div class="flex flex-wrap items-center gap-2">
             <button 
               @click="generateSolution(true)"
@@ -381,7 +387,7 @@
             :key="demo.id"
             class="border border-stone-200/80 rounded-2xl overflow-hidden bg-stone-50/40 hover:bg-white hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between group">
             
-            <!-- 示範卡片圖片 -->
+            <!-- 示範卡片圖片（固定經典組合，100% 圖文相符） -->
             <div class="relative w-full h-36 overflow-hidden bg-stone-200">
               <img 
                 :src="demo.imageUrl" 
@@ -475,7 +481,7 @@
           {
             name: '主食與乳飲',
             icon: '🍞',
-            items: ['白飯剩半碗', '烏龍麵半包', '吐司邊', '泡麵塊', '冬粉一把', '快過期的牛奶', '常溫無糖豆漿', '半盒板豆腐', '起司片']
+            items: ['白飯剩半碗', '烏龍麵半包', '吐司邊', '泡麵塊', '冬粉一包', '快過期的牛奶', '常溫無糖豆漿', '半盒板豆腐', '起司片']
           },
           {
             name: '蛋白質與罐頭',
@@ -543,7 +549,7 @@
           }
         }
 
-        // 4. 社群示範庫
+        // 4. 社群示範庫（固定經典搭配，圖文 100% 吻合）
         const communityDemos = [
           {
             id: 1,
@@ -589,87 +595,7 @@
           generateSolution(false)
         }
 
-        // 5. 智慧食材關鍵字配圖引擎（精準區分冬粉、烏龍麵、泡麵、飯食與無澱粉料理）
-        const pickMatchedFoodImage = (ingredientsList, applianceId, mealId, variant) => {
-          const text = ingredientsList.join(' ')
-
-          // 1) 若明確包含冬粉/粉絲/米粉/河粉（絕不出現粗烏龍麵！）
-          if (/冬粉|粉絲|米粉|河粉|寬粉/.test(text)) {
-            const glassNoodlePhotos = [
-              'https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=800&q=80', // 亞洲風味細粉湯碗
-              'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&w=800&q=80', // 鮮蔬細粉熱湯
-              'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=800&q=80'  // 醬拌細粉絲碗
-            ]
-            return glassNoodlePhotos[variant % glassNoodlePhotos.length]
-          }
-
-          // 2) 若明確包含烏龍麵
-          if (/烏龍麵/.test(text)) {
-            const udonPhotos = [
-              'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=800&q=80', // 日式湯烏龍
-              'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80'  // 醬拌炒烏龍
-            ]
-            return udonPhotos[variant % udonPhotos.length]
-          }
-
-          // 3) 若包含泡麵、拉麵、意麵、義大利麵
-          if (/泡麵|拉麵|意麵|義大利麵|麵/.test(text)) {
-            const ramenPhotos = [
-              'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80', // 暖心拉麵/泡麵
-              'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80'  // 醬香炒麵
-            ]
-            return ramenPhotos[variant % ramenPhotos.length]
-          }
-
-          // 4) 若包含白飯/米飯類
-          if (/飯|粥|燉飯/.test(text)) {
-            const ricePhotos = [
-              'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80', // 黃金炒飯
-              'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80', // 蓋飯/燴飯碗
-              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'  // 豐盛蔬食米食碗
-            ]
-            return ricePhotos[variant % ricePhotos.length]
-          }
-
-          // 5) 若包含吐司、蛋、起司、培根或為早餐/下午茶
-          if (/吐司|麵包|蛋|起司|培根|熱狗|鑫鑫腸/.test(text) || mealId === 'breakfast' || mealId === 'teatime') {
-            const brunchPhotos = [
-              'https://images.unsplash.com/photo-1525351484163-7529414342d8?auto=format&fit=crop&w=800&q=80', // 滑蛋吐司早午餐
-              'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=800&q=80', // 酪梨/鮮蔬蛋料理
-              'https://images.unsplash.com/photo-1510693206972-df098062cb71?auto=format&fit=crop&w=800&q=80'  // 歐姆蛋/烘蛋煎餅
-            ]
-            return brunchPhotos[variant % brunchPhotos.length]
-          }
-
-          // 6) 若包含豆腐、豆漿、番茄或湯鍋/微波暖湯
-          if (/豆腐|豆漿|番茄|貢丸|金針菇/.test(text) || applianceId === 'microwave' || applianceId === 'pot') {
-            const soupPhotos = [
-              'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80', // 濃郁番茄暖湯
-              'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=800&q=80', // 鮮蔬豆腐煲湯
-              'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80'  // 家常嫩肉鮮蔬燉煮
-            ]
-            return soupPhotos[variant % soupPhotos.length]
-          }
-
-          // 7) 涼拌或純蔬菜/肉片雜燴
-          if (applianceId === 'salad') {
-            const saladPhotos = [
-              'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // 色彩繽紛溫沙拉
-              'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80'  // 清爽時蔬拌盤
-            ]
-            return saladPhotos[variant % saladPhotos.length]
-          }
-
-          // 8) 通用無澱粉時蔬鮮肉家常料理
-          const generalDishPhotos = [
-            'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
-          ]
-          return generalDishPhotos[variant % generalDishPhotos.length]
-        }
-
-        // 6. 生成料理結果（結合 食材 + 廚具 + 六大餐期）
+        // 5. 生成料理結果（結合 食材 + 廚具 + 六大餐期）
         const isGenerating = ref(false)
         const generatedRecipe = ref(null)
         const completedSteps = ref({})
@@ -680,9 +606,19 @@
           return found ? found.name : '極簡廚具'
         }
 
+        const getApplianceIcon = (id) => {
+          const found = applianceList.find(a => a.id === id)
+          return found ? found.icon : '🍲'
+        }
+
         const getMealTypeName = (id) => {
           const found = mealTypeList.find(m => m.id === id)
           return found ? found.name : '晚餐'
+        }
+
+        const getMealTypeIcon = (id) => {
+          const found = mealTypeList.find(m => m.id === id)
+          return found ? found.icon : '🌙'
         }
 
         const getMealTypeTagline = (id) => {
@@ -703,7 +639,7 @@
           completedSteps.value = {}
 
           setTimeout(() => {
-            const list = selectedIngredients.value
+            const list = [...selectedIngredients.value]
             const mainIng = list[0] || '剩餘邊角料'
             const cleanMain = mainIng.replace(/幾瓣|不知何去何從的|倒不滿一杯|假日沒煮完的|三三兩兩的/g, '')
             const count = list.length
@@ -744,7 +680,6 @@
             let steps = []
             let serving1 = mealServingExtra
             let serving2 = ''
-            const resultImageUrl = pickMatchedFoodImage(list, selectedAppliance.value, mealId, variant)
 
             if (selectedAppliance.value === 'ricecooker') {
               if (variant === 0) {
@@ -852,7 +787,7 @@
               servingWay1: serving1,
               servingWay2: serving2,
               steps: steps,
-              imageUrl: resultImageUrl
+              usedIngredients: list
             }
 
             isGenerating.value = false
@@ -894,7 +829,9 @@
           generateSolution,
           toggleStepCheck,
           getApplianceName,
+          getApplianceIcon,
           getMealTypeName,
+          getMealTypeIcon,
           getMealTypeTagline
         }
       }
