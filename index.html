@@ -19,17 +19,6 @@
         extend: {
           fontFamily: {
             sans: ['"Noto Sans TC"', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#fffbeb',
-              100: '#fef3c7',
-              200: '#fde68a',
-              500: '#f59e0b',
-              600: '#d97706',
-              700: '#b45309',
-              800: '#92400e',
-            }
           }
         }
       }
@@ -42,6 +31,13 @@
     .no-scrollbar {
       -ms-overflow-style: none;
       scrollbar-width: none;
+    }
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    .animate-float {
+      animation: floatSlow 3s ease-in-out infinite;
     }
   </style>
 </head>
@@ -81,7 +77,7 @@
             <span class="w-5 h-5 rounded-full bg-amber-200 text-amber-900 inline-flex items-center justify-center text-xs">3</span>
             產生吃法
           </div>
-          <p class="text-stone-500 text-[11px] mt-0.5">一鍵救回邊角料！</p>
+          <p class="text-stone-500 text-[11px] mt-0.5">全部食材一個都不浪費！</p>
         </div>
       </div>
     </header>
@@ -132,7 +128,7 @@
             v-for="(item, idx) in selectedIngredients" 
             :key="item"
             class="group inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-amber-100/80 hover:bg-amber-200 text-amber-950 border border-amber-300/70 rounded-full text-xs sm:text-sm font-medium transition-all shadow-xs">
-            <span>{{ item }}</span>
+            <span>{{ getIngredientEmoji(item) }} {{ item }}</span>
             <button 
               @click="removeIngredient(idx)" 
               title="按叉叉移除"
@@ -239,54 +235,108 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
             </svg>
-            <span>AI 大廚正在為你調配專屬「{{ getMealTypeName(selectedMealType) }}」...</span>
+            <span>AI 大廚正在為你把 {{ selectedIngredients.length }} 樣食材全部排進「{{ getMealTypeName(selectedMealType) }}」...</span>
           </span>
           <span v-else class="flex items-center gap-2">
-            <span>🔥 拯救這些食材！產生「{{ getMealTypeName(selectedMealType) }}」料理</span>
+            <span>🔥 拯救這 {{ selectedIngredients.length }} 樣食材！產生「{{ getMealTypeName(selectedMealType) }}」料理</span>
           </span>
         </button>
       </div>
 
-      <!-- 區塊 5: 生成成果卡片（100% 圖文相符的專屬料理視覺卡） -->
+      <!-- 區塊 5: 生成成果卡片（動態 SVG 擺盤插畫 + 全食材角色分配） -->
       <section v-if="generatedRecipe" id="recipe-result" class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border-2 border-amber-300">
         
-        <!-- 零穿幫專屬料理概念視覺橫幅（動態對應實際選取食材、廚具與餐期） -->
-        <div class="relative w-full rounded-2xl overflow-hidden mb-6 p-5 sm:p-6 bg-gradient-to-br from-amber-100 via-orange-50 to-amber-200/80 border border-amber-300/70">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5">
-              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center text-3xl sm:text-4xl shrink-0 border border-amber-200">
-                {{ getApplianceIcon(selectedAppliance) }}
+        <!-- 動態 SVG 擺盤視覺模擬卡（每次換做法會切換不同盤飾、色調與器皿，100% 呈現全部食材） -->
+        <div 
+          :class="generatedRecipe.visualTheme.bgClass"
+          class="relative w-full rounded-2xl overflow-hidden mb-6 p-5 sm:p-6 border transition-all duration-500">
+          
+          <div class="flex flex-col md:flex-row items-center gap-5">
+            <!-- 左側：動態繪製器皿與食材擺盤 SVG -->
+            <div class="w-40 h-40 sm:w-44 sm:h-44 shrink-0 relative flex items-center justify-center bg-white/75 backdrop-blur-xs rounded-2xl shadow-inner border border-white/80 p-2">
+              <svg viewBox="0 0 180 180" class="w-full h-full">
+                <!-- 提案 #1：深湯碗 / 砂鍋濃醇燉煮造型 -->
+                <g v-if="recipeVariantIndex === 0">
+                  <ellipse cx="90" cy="105" rx="68" ry="48" fill="#d97706" opacity="0.18"/>
+                  <circle cx="90" cy="95" r="62" fill="#fffbeb" stroke="#b45309" stroke-width="5"/>
+                  <circle cx="90" cy="95" r="52" fill="#fde68a" opacity="0.7"/>
+                  <!-- 熱氣波浪 -->
+                  <path d="M68 28 Q63 20 68 12" stroke="#d97706" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                  <path d="M90 24 Q85 16 90 8" stroke="#d97706" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                  <path d="M112 28 Q107 20 112 12" stroke="#d97706" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                </g>
+
+                <!-- 提案 #2：木質平盤 / 酥脆煎餅或乾拌造型 -->
+                <g v-else-if="recipeVariantIndex === 1">
+                  <rect x="20" y="32" width="140" height="122" rx="28" fill="#fef3c7" stroke="#92400e" stroke-width="5"/>
+                  <rect x="30" y="42" width="120" height="102" rx="20" fill="#fff7ed" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,4"/>
+                  <!-- 醬汁淋紋 -->
+                  <path d="M45 92 Q70 70 90 92 T135 92" stroke="#ea580c" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+                </g>
+
+                <!-- 提案 #3：雙耳焗烤盅 / 暖胃濃湯造型 -->
+                <g v-else>
+                  <rect x="12" y="82" width="18" height="26" rx="8" fill="#ea580c"/>
+                  <rect x="150" y="82" width="18" height="26" rx="8" fill="#ea580c"/>
+                  <circle cx="90" cy="95" r="60" fill="#ffedd5" stroke="#c2410c" stroke-width="5"/>
+                  <circle cx="90" cy="95" r="50" fill="#fed7aa" opacity="0.75"/>
+                  <!-- 融化起司泡點 -->
+                  <circle cx="72" cy="78" r="7" fill="#fef08a"/>
+                  <circle cx="108" cy="82" r="9" fill="#fef08a"/>
+                  <circle cx="88" cy="112" r="8" fill="#fef08a"/>
+                </g>
+              </svg>
+
+              <!-- 疊加在器皿正中央與周圍的真實選取食材 Emoji（全部都看得到！） -->
+              <div class="absolute inset-0 flex flex-wrap items-center justify-center gap-1 p-5 pointer-events-none">
+                <span 
+                  v-for="(ing, i) in generatedRecipe.usedIngredients" 
+                  :key="ing + i"
+                  :style="{ animationDelay: `${i * 0.25}s` }"
+                  class="text-xl sm:text-2xl animate-float drop-shadow-xs select-none"
+                  :title="ing">
+                  {{ getIngredientEmoji(ing) }}
+                </span>
               </div>
-              <div>
-                <div class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-white/80 px-2.5 py-0.5 rounded-full mb-1">
-                  <span>{{ getMealTypeIcon(selectedMealType) }} {{ getMealTypeName(selectedMealType) }}</span>
-                  <span>•</span>
-                  <span>{{ getMealTypeTagline(selectedMealType) }}</span>
-                </div>
-                <div class="text-xs text-amber-800/90 font-medium">
-                  本次下鍋救援的 {{ generatedRecipe.usedIngredients.length }} 樣真實食材（提案 #{{ recipeVariantIndex + 1 }}）：
-                </div>
+              <span class="absolute bottom-1.5 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-stone-600 shadow-2xs">
+                {{ generatedRecipe.visualTheme.plateLabel }}
+              </span>
+            </div>
+
+            <!-- 右側：餐期氛圍＋全食材角色分工總覽 -->
+            <div class="flex-1 text-center md:text-left">
+              <div class="inline-flex flex-wrap items-center justify-center md:justify-start gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-white/85 text-stone-800 shadow-2xs mb-2">
+                <span>{{ getMealTypeIcon(selectedMealType) }} {{ getMealTypeName(selectedMealType) }}</span>
+                <span>•</span>
+                <span>{{ getMealTypeTagline(selectedMealType) }}</span>
+                <span class="px-1.5 py-0.2 bg-amber-500 text-white rounded-md ml-1">提案 #{{ recipeVariantIndex + 1 }}</span>
+              </div>
+
+              <h3 class="text-sm sm:text-base font-extrabold text-stone-800 mb-2">
+                🎯 全食材 100% 活用任務表（{{ generatedRecipe.usedIngredients.length }} 樣全數入菜）：
+              </h3>
+
+              <!-- 顯示所有食材及其在本道菜的分工角色 -->
+              <div class="flex flex-wrap justify-center md:justify-start gap-1.5">
+                <span 
+                  v-for="roleItem in generatedRecipe.ingredientRoles" 
+                  :key="roleItem.name"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 bg-white/90 text-stone-800 rounded-xl text-xs font-medium shadow-2xs border border-black/5">
+                  <span>{{ getIngredientEmoji(roleItem.name) }}</span>
+                  <span class="font-bold">{{ roleItem.name }}</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-800 font-semibold">{{ roleItem.role }}</span>
+                </span>
               </div>
             </div>
           </div>
-
-          <!-- 動態列出本次實際使用的每一樣食材標籤，100% 圖文相符 -->
-          <div class="mt-4 pt-3 border-t border-amber-300/50 flex flex-wrap gap-1.5">
-            <span 
-              v-for="ing in generatedRecipe.usedIngredients" 
-              :key="ing"
-              class="inline-flex items-center gap-1 px-2.5 py-1 bg-white/90 text-stone-800 rounded-lg text-xs font-semibold shadow-2xs border border-amber-200/80">
-              <span class="text-amber-600">✦</span>
-              <span>{{ ing }}</span>
-            </span>
-          </div>
         </div>
 
+        <!-- 標題與資訊列 -->
         <div class="flex items-start justify-between flex-wrap gap-2 border-b border-stone-100 pb-4">
           <div>
             <div class="flex flex-wrap items-center gap-2 mb-1">
               <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">拯救成功率 99%</span>
-              <span class="bg-orange-100 text-orange-800 text-xs px-2.5 py-0.5 rounded-full font-bold">{{ getMealTypeName(selectedMealType) }}</span>
+              <span class="bg-orange-100 text-orange-800 text-xs px-2.5 py-0.5 rounded-full font-bold">{{ generatedRecipe.visualTheme.styleBadge }}</span>
               <span class="text-xs text-stone-500">⏱️ 約 {{ generatedRecipe.timeNeeded }}</span>
               <span class="text-xs text-stone-500">⚡ 難度：{{ generatedRecipe.difficulty }}</span>
             </div>
@@ -327,10 +377,10 @@
           </div>
         </div>
 
-        <!-- 具體極簡步驟（附互動打勾） -->
+        <!-- 具體極簡步驟（完整納入所有選取食材） -->
         <div class="mt-6">
           <h3 class="font-bold text-stone-800 text-base mb-3 flex items-center gap-1.5">
-            <span>📝 極簡烹飪步驟（打開喇一喇）：</span>
+            <span>📝 極簡烹飪步驟（每樣食材都安排好了，打開喇一喇）：</span>
           </h3>
           <ol class="space-y-2.5">
             <li 
@@ -352,18 +402,18 @@
           </ol>
         </div>
 
-        <!-- 底部雙軌彈性操作：可同食材換作法，也可回去微調食材 -->
+        <!-- 底部雙軌彈性操作 -->
         <div class="mt-6 pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3">
-          <span class="text-xs text-stone-400">已整合 {{ generatedRecipe.usedIngredients.length }} 樣食材 • 可自由切換做法或調整清單</span>
+          <span class="text-xs text-stone-400">已 100% 整合全部 {{ generatedRecipe.usedIngredients.length }} 樣食材 • 點「換個作法」看不同擺盤與煮法</span>
           <div class="flex flex-wrap items-center gap-2">
             <button 
               @click="generateSolution(true)"
-              class="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95">
-              <span>🔄 同食材換個作法</span>
+              class="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-xs">
+              <span>🔄 同食材換個作法（切換擺盤與煮法）</span>
             </button>
             <button 
               @click="scrollToEditor"
-              class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95">
+              class="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all active:scale-95">
               <span>✏️ 修改食材 / 換廚具</span>
             </button>
           </div>
@@ -387,7 +437,6 @@
             :key="demo.id"
             class="border border-stone-200/80 rounded-2xl overflow-hidden bg-stone-50/40 hover:bg-white hover:border-amber-300 hover:shadow-md transition-all flex flex-col justify-between group">
             
-            <!-- 示範卡片圖片（固定經典組合，100% 圖文相符） -->
             <div class="relative w-full h-36 overflow-hidden bg-stone-200">
               <img 
                 :src="demo.imageUrl" 
@@ -443,7 +492,7 @@
 
     createApp({
       setup() {
-        // 1. 已選食材標籤清單（預設帶入經典殘局）
+        // 1. 已選食材標籤清單
         const selectedIngredients = ref([
           '假日沒煮完的烏龍麵',
           '倒不滿一杯牛奶',
@@ -453,6 +502,47 @@
         ])
         const customInput = ref('')
         const ingredientInputRef = ref(null)
+
+        // 智慧食材對應專屬小圖示（讓每樣食材在擺盤中都看得見）
+        const getIngredientEmoji = (name) => {
+          if (/牛奶|鮮奶|豆漿|優酪乳/.test(name)) return '🥛'
+          if (/蛋/.test(name)) return '🥚'
+          if (/鮪魚|魚|海鮮|蝦/.test(name)) return '🐟'
+          if (/肉|培根|火腿|香腸|鑫鑫腸|貢丸/.test(name)) return '🥩'
+          if (/豆腐/.test(name)) return '🧊'
+          if (/起司|乳酪/.test(name)) return '🧀'
+          if (/吐司|麵包|饅頭/.test(name)) return '🍞'
+          if (/飯|米/.test(name)) return '🍚'
+          if (/麵|冬粉|粉絲|米粉/.test(name)) return '🍜'
+          if (/番茄/.test(name)) return '🍅'
+          if (/高麗菜|青菜|菠菜|小白菜/.test(name)) return '🥬'
+          if (/紅蘿蔔|胡蘿蔔/.test(name)) return '🥕'
+          if (/洋蔥|蔥/.test(name)) return '🧅'
+          if (/蒜/.test(name)) return '🧄'
+          if (/菇/.test(name)) return '🍄'
+          if (/玉米/.test(name)) return '🌽'
+          if (/醬|油|醋|咖哩|胡椒|鹽/.test(name)) return '🧂'
+          return '🥘'
+        }
+
+        // 將全部食材自動分類為 3 大下鍋角色，保證 100% 全部納入步驟！
+        const classifyIngredients = (list) => {
+          const baseAndVeg = []   // 打底蔬菜與耐煮食材
+          const mainAndProtein = [] // 主食與蛋白質
+          const sauceAndFinish = [] // 醬料、乳品與起鍋提味
+
+          list.forEach(item => {
+            if (/醬|油|醋|咖哩|胡椒|鹽|牛奶|鮮奶|豆漿|起司|乳酪|蔥/.test(item)) {
+              sauceAndFinish.push(item)
+            } else if (/高麗菜|蘿蔔|洋蔥|蒜|菇|番茄|玉米|菜/.test(item)) {
+              baseAndVeg.push(item)
+            } else {
+              mainAndProtein.push(item)
+            }
+          })
+
+          return { baseAndVeg, mainAndProtein, sauceAndFinish }
+        }
 
         // 2. 廚具選擇
         const selectedAppliance = ref('ricecooker')
@@ -505,9 +595,7 @@
           return cat ? cat.items : []
         })
 
-        const isIngredientSelected = (item) => {
-          return selectedIngredients.value.includes(item)
-        }
+        const isIngredientSelected = (item) => selectedIngredients.value.includes(item)
 
         const toggleIngredient = (item) => {
           const index = selectedIngredients.value.indexOf(item)
@@ -534,7 +622,6 @@
           selectedIngredients.value = []
         }
 
-        // 平滑返回上方清單並提示聚焦
         const scrollToEditor = () => {
           const editorEl = document.getElementById('ingredient-editor')
           if (editorEl) {
@@ -549,7 +636,7 @@
           }
         }
 
-        // 4. 社群示範庫（固定經典搭配，圖文 100% 吻合）
+        // 4. 社群示範庫
         const communityDemos = [
           {
             id: 1,
@@ -595,36 +682,17 @@
           generateSolution(false)
         }
 
-        // 5. 生成料理結果（結合 食材 + 廚具 + 六大餐期）
+        // 5. 生成料理結果
         const isGenerating = ref(false)
         const generatedRecipe = ref(null)
         const completedSteps = ref({})
         const recipeVariantIndex = ref(0)
 
-        const getApplianceName = (id) => {
-          const found = applianceList.find(a => a.id === id)
-          return found ? found.name : '極簡廚具'
-        }
-
-        const getApplianceIcon = (id) => {
-          const found = applianceList.find(a => a.id === id)
-          return found ? found.icon : '🍲'
-        }
-
-        const getMealTypeName = (id) => {
-          const found = mealTypeList.find(m => m.id === id)
-          return found ? found.name : '晚餐'
-        }
-
-        const getMealTypeIcon = (id) => {
-          const found = mealTypeList.find(m => m.id === id)
-          return found ? found.icon : '🌙'
-        }
-
-        const getMealTypeTagline = (id) => {
-          const found = mealTypeList.find(m => m.id === id)
-          return found ? found.desc : '健康的夜，從餐桌開始'
-        }
+        const getApplianceName = (id) => (applianceList.find(a => a.id === id) || {}).name || '極簡廚具'
+        const getApplianceIcon = (id) => (applianceList.find(a => a.id === id) || {}).icon || '🍲'
+        const getMealTypeName = (id) => (mealTypeList.find(m => m.id === id) || {}).name || '晚餐'
+        const getMealTypeIcon = (id) => (mealTypeList.find(m => m.id === id) || {}).icon || '🌙'
+        const getMealTypeTagline = (id) => (mealTypeList.find(m => m.id === id) || {}).desc || '健康的夜，從餐桌開始'
 
         const generateSolution = (isRetry = false) => {
           if (selectedIngredients.value.length === 0) return
@@ -646,33 +714,66 @@
             const variant = recipeVariantIndex.value
             const mealId = selectedMealType.value
 
+            // 將所有食材分成三組，確保步驟裡 100% 全部出現！
+            const { baseAndVeg, mainAndProtein, sauceAndFinish } = classifyIngredients(list)
+
+            // 建立全食材角色標籤列表
+            const ingredientRoles = list.map(item => {
+              if (baseAndVeg.includes(item)) return { name: item, role: '打底出甜味' }
+              if (mainAndProtein.includes(item)) return { name: item, role: '主角擔當' }
+              return { name: item, role: '靈魂乳化提味' }
+            })
+
+            const baseText = baseAndVeg.length > 0 ? `【${baseAndVeg.join('、')}】` : '手邊易熟打底配料'
+            const mainText = mainAndProtein.length > 0 ? `【${mainAndProtein.join('、')}】` : `【${list.join('、')}】`
+            const sauceText = sauceAndFinish.length > 0 ? `【${sauceAndFinish.join('、')}】` : '少許水與基本調味料'
+
+            // 三種做法的專屬視覺色調與器皿主題（每次切換做法視覺都會大變身！）
+            const visualThemes = [
+              {
+                bgClass: 'bg-gradient-to-br from-amber-100 via-orange-50 to-amber-200/80 border-amber-300/80',
+                plateLabel: '深湯碗濃醇系',
+                styleBadge: '濃醇燉煮派'
+              },
+              {
+                bgClass: 'bg-gradient-to-br from-emerald-50 via-teal-50 to-amber-100/70 border-emerald-300/80',
+                plateLabel: '木質平盤乾拌/煎餅系',
+                styleBadge: '香煎乾拌派'
+              },
+              {
+                bgClass: 'bg-gradient-to-br from-rose-50 via-orange-50 to-amber-100/80 border-rose-300/80',
+                plateLabel: '雙耳焗烤暖盅系',
+                styleBadge: '焗烤滑嫩派'
+              }
+            ]
+
             let mealPrefix = ''
             let mealToneComment = ''
             let mealServingExtra = ''
 
             if (mealId === 'breakfast') {
               mealPrefix = '🌅 醒來就有好味道'
-              mealToneComment = '早晨分秒必爭！這道早餐講究不開油煙、快速喚醒味蕾，幫你把冰箱邊角料變成元氣滿滿的第一餐。'
+              mealToneComment = `早晨分秒必爭！這道早餐把你挑出的 ${count} 樣食材全部排進同一鍋，不開油煙、快速喚醒味蕾。`
               mealServingExtra = '可以直接夾進吐司、捲進蛋餅皮，或配一杯溫豆漿/牛奶，五分鐘優雅出門！'
             } else if (mealId === 'brunch') {
               mealPrefix = '☀️ 睡到自然醒，吃到自然飽'
-              mealToneComment = '假日睡到自然醒的黃金時段，把早午餐合併成一盤豐盛拼盤或濃郁燴料理，一路飽到下午！'
+              mealToneComment = `假日睡到自然醒的黃金時段，把這 ${count} 樣邊角料組合成豐盛大拼盤或濃郁燴料理，一路飽到下午！`
               mealServingExtra = '全部集中裝在一個大深盤裡，配上一杯冰美式或鮮奶茶，在家就能享受咖啡廳早午餐儀式感。'
             } else if (mealId === 'lunch') {
               mealPrefix = '🍱 品味你的中午'
-              mealToneComment = `午休時間寶貴，這道料理精準整合手邊這 ${count} 樣食材，有主食有配料，快速補充下午工作上課的能量！`
+              mealToneComment = `午休時間寶貴，這道料理精準整合全部 ${count} 樣食材，有主食有配料，快速補充下午工作上課的能量！`
               mealServingExtra = '一鍋到底直接裝碗開動，吃完不昏沉、少洗好幾個盤子，午休還能多睡 15 分鐘。'
             } else if (mealId === 'teatime') {
               mealPrefix = '☕ 三點鐘的美味時光'
-              mealToneComment = '下午三點嘴饞想吃點鹹香小點？把剩餘食材濃縮成精緻小份量點心，配茶配咖啡都超搭！'
+              mealToneComment = `下午三點嘴饞想吃點鹹香小點？把這 ${count} 樣剩餘食材濃縮成精緻小點心，配茶配咖啡都超搭！`
               mealServingExtra = '切成一口大小盛在小碟子上，撒點海苔粉或黑胡椒，瞬間擁有午後小確幸。'
             } else if (mealId === 'dinner') {
               mealPrefix = '🌙 健康的夜，從餐桌開始'
-              mealToneComment = `結束忙碌的一天，用冰箱現有的 ${count} 樣食材煮出暖心晚餐，均衡無負擔地犒賞自己！`
+              mealToneComment = `結束忙碌的一天，把冰箱現有的全部 ${count} 樣食材煮成暖心晚餐，一個都不浪費地犒賞自己！`
               mealServingExtra = '直接端著鍋子或大碗公享用，趁熱把蔬菜與蛋白質通通吃下肚，溫暖又滿足。'
             } else {
               mealPrefix = '✨ 輕鬆吃，安心睡'
-              mealToneComment = '深夜肚子微餓時，不需要重油重鹹的外送！這道輕盈暖胃消夜份量剛剛好，吃完無負擔、一夜好眠。'
+              mealToneComment = `深夜肚子微餓時，把這 ${count} 樣食材變成輕盈暖胃消夜，吃完無負擔、一夜好眠。`
               mealServingExtra = '用小湯碗盛裝慢慢享用，暖胃又解饞，吃完直接去睡覺也不會覺得腸胃沉重。'
             }
 
@@ -683,97 +784,97 @@
 
             if (selectedAppliance.value === 'ricecooker') {
               if (variant === 0) {
-                recipeTitle = `${mealPrefix}：「${cleanMain}」電鍋一鍋濃醇煨雜燴`
+                recipeTitle = `${mealPrefix}：「${cleanMain}」電鍋全料濃醇煨雜燴`
                 steps = [
-                  `外鍋加半杯水，將內鍋底抹少許油或醬料防沾。`,
-                  `依序鋪入耐煮的食材（如蔬菜、主食類），頂層放上易碎食材與蛋白質。`,
-                  `倒入液體（水、牛奶或醬油膏），蓋上鍋蓋，帥氣按下開關。`,
-                  `電鍋跳起後悶 3 分鐘，「打開大膽喇一喇」，趁熱撒黑胡椒即可享用！`
+                  `外鍋加半杯水；內鍋底先鋪上耐煮打底組：${baseText}，讓甜味先釋放。`,
+                  `接著鋪上本道主角群：${mainText}，全部平鋪好不用複雜刀工。`,
+                  `淋入靈魂醬汁與乳品組：${sauceText}（若太乾可補半碗水），蓋蓋按下開關。`,
+                  `電鍋跳起後悶 3 分鐘，「打開大膽喇一喇」讓所有食材均勻裹醬即可開動！`
                 ]
                 serving2 = `若冰箱還有起司片或生辣椒，跳起時趁熱丟一片拌進去，瞬間變身濃郁西式焗烤風味。`
               } else if (variant === 1) {
-                recipeTitle = `${mealPrefix}：日式和風「${cleanMain}」電鍋蒸拌碗`
+                recipeTitle = `${mealPrefix}：和風乾拌「${cleanMain}」電鍋蒸烤拼盤`
                 steps = [
-                  `把所有食材切成一口大小，全數集中鋪平在深碗或內鍋裡。`,
-                  `淋上一大匙醬油與少許香油（不用加太多水），外鍋放 0.7 杯水按下開關。`,
-                  `跳起後趁熱拌入現有醬料，利用餘溫快速拌勻成滑順醬汁！`
+                  `把 ${baseText} 墊在深盤最底層吸汁，上方疊滿 ${mainText}。`,
+                  `只淋上一半的 ${sauceText}（保留濃郁乾香口感），外鍋加 0.7 杯水蒸熟。`,
+                  `跳起後把剩下的 ${sauceText} 全部倒入，趁熱快速拌勻成滑順乾拌料理！`
                 ]
                 serving2 = `加一點醋或檸檬汁提味，立刻變成開胃解膩的日式溫沙拉拌料理。`
               } else {
-                recipeTitle = `${mealPrefix}：暖胃高湯「${cleanMain}」電鍋鮮味燉盅`
+                recipeTitle = `${mealPrefix}：暖胃焗香「${cleanMain}」電鍋鮮味燉盅`
                 steps = [
-                  `將所有食材放進深湯碗中，倒入蓋過食材 8 分滿的清水或豆漿/牛奶。`,
-                  `外鍋放 1 杯水按下開關，完全免顧火。`,
-                  `跳起後加入少許鹽巴與黑胡椒「喇一喇」調味即完成！`
+                  `將 ${baseText} 與 ${mainText} 全部切小塊放進深湯碗中。`,
+                  `倒入 ${sauceText} 並補水至蓋過食材 8 分滿，外鍋放 1 杯水按下開關。`,
+                  `跳起後撒點黑胡椒稍微「喇一喇」，全數 ${count} 樣食材精華全融在湯裡！`
                 ]
                 serving2 = `湯汁拿來泡吐司邊或蘇打餅乾吃，吸滿精華超級滿足。`
               }
             } else if (selectedAppliance.value === 'pan') {
               if (variant === 0) {
-                recipeTitle = `${mealPrefix}：大火喇一喇「${cleanMain}」鐵板燒風味`
+                recipeTitle = `${mealPrefix}：大火喇一喇「${cleanMain}」全料鐵板燒`
                 steps = [
-                  `平底鍋倒一小匙油熱鍋，先下蒜頭或辛香料爆出香氣。`,
-                  `將 ${list.slice(0, 3).join('、')} 通通丟進鍋中，轉中大火快翻 90 秒。`,
-                  `淋上一圈醬汁嗆出焦香味，快速拌勻至湯汁收乾即可盛盤！`
+                  `平底鍋倒一小匙油熱鍋，先下打底組 ${baseText} 炒出香氣。`,
+                  `接著把主角群 ${mainText} 通通倒進鍋中，轉中大火快翻 90 秒。`,
+                  `最後淋入 ${sauceText} 嗆出焦香味，快速拌勻收汁即可盛盤！`
                 ]
                 serving2 = `吃到最後留兩口，打顆生蛋花進鍋底炒熟，享受焦香煎蛋底！`
               } else if (variant === 1) {
-                recipeTitle = `${mealPrefix}：焦香「${cleanMain}」懶人大阪燒/酥脆煎餅`
+                recipeTitle = `${mealPrefix}：金黃酥脆「${cleanMain}」全料懶人煎餅`
                 steps = [
-                  `把所有食材切碎混在一起，加少許水或蛋液（若有吐司邊或碎餅乾也可撕碎加入增加黏性）。`,
-                  `平底鍋抹油小火慢煎，將食材壓成圓餅狀，煎 3 分鐘至底部金黃酥脆。`,
-                  `翻面再煎 2 分鐘，起鍋前表面刷上現有醬料與黑胡椒即可！`
+                  `把 ${baseText} 與 ${mainText} 全部切碎混在一起，加入一半的 ${sauceText} 拌成稠狀。`,
+                  `平底鍋抹油小火慢煎，將所有食材壓成圓餅狀，煎 3 分鐘至底部金黃酥脆。`,
+                  `翻面再煎 2 分鐘，起鍋前表面刷上剩下的 ${sauceText} 與黑胡椒即可！`
                 ]
                 serving2 = `擠上美乃滋或番茄醬，秒變夜市豪華版綜合煎餅。`
               } else {
-                recipeTitle = `${mealPrefix}：半熟蓋煎「${cleanMain}」滑嫩親子/時蔬鍋`
+                recipeTitle = `${mealPrefix}：滑嫩蓋煎「${cleanMain}」和風親子/雜燴鍋`
                 steps = [
-                  `平底鍋加 3 大匙水與現有醬汁煮滾，將食材鋪平在鍋底中小火燜煮 2 分鐘。`,
-                  `若有雞蛋或起司片，直接鋪在最上層蓋鍋蓋再悶 1 分鐘至融化滑嫩。`,
-                  `整鍋直接上桌（少洗一個盤子），用湯匙挖著吃超痛快！`
+                  `平底鍋加 3 大匙水煮滾，先下 ${baseText} 煮軟。`,
+                  `鋪入 ${mainText} 中小火燜煮 2 分鐘至熟透。`,
+                  `最後淋上 ${sauceText} 蓋鍋蓋悶 1 分鐘讓醬汁乳化融化，整鍋直接上桌！`
                 ]
                 serving2 = `撒上蔥花或海苔碎，賣相直接升級成日式定食主菜。`
               }
             } else if (selectedAppliance.value === 'microwave') {
               if (variant === 0) {
-                recipeTitle = `${mealPrefix}：3分鐘「${cleanMain}」微波暖胃濃湯盅`
+                recipeTitle = `${mealPrefix}：3分鐘「${cleanMain}」全料微波濃湯盅`
                 steps = [
-                  `找一個可微波的大深碗，將食材全部切小塊或撕碎平鋪進碗內。`,
-                  `倒入蓋過一半食材的液體（水、豆漿或牛奶）與調味料，留一道透氣縫蓋上保鮮膜。`,
-                  `微波爐 700W 中高火加熱 2 分 30 秒，聽到咕嘟咕嘟聲響即可端出拌勻！`
+                  `找一個可微波的大深碗，底層先鋪 ${baseText}，上層放滿 ${mainText}。`,
+                  `倒入 ${sauceText} 與適量清水蓋過一半食材，留一道透氣縫蓋上保鮮膜。`,
+                  `微波爐 700W 中高火加熱 2 分 30 秒，取出「喇一喇」讓味道融合即可開吃！`
                 ]
                 serving2 = `把吐司邊或餅乾撕碎丟進湯裡吸飽湯汁，飽足感與口感層次直接翻倍。`
               } else if (variant === 1) {
                 recipeTitle = `${mealPrefix}：光速「${cleanMain}」濃醬乾拌碗`
                 steps = [
-                  `將食材鋪在深碗中，只灑 1 大匙水保持濕潤，中火微波 2 分鐘。`,
-                  `取出後趁熱把現有醬料（沙茶、壽喜燒醬或起司）直接拌進去融化。`,
-                  `上下翻拌均勻，讓每塊邊角料都裹滿濃郁醬汁就完成！`
+                  `將 ${baseText} 與 ${mainText} 鋪在深碗中，只灑 1 大匙水保持濕潤，中火微波 2 分鐘。`,
+                  `取出後趁熱把 ${sauceText} 全部倒進去融化。`,
+                  `上下翻拌均勻，讓這 ${count} 樣食材都裹滿濃郁醬汁就完成！`
                 ]
                 serving2 = `放涼後冰進冰箱 10 分鐘，口感會變得更 Q 彈入味。`
               } else {
-                recipeTitle = `${mealPrefix}：免顧火「${cleanMain}」微波焗烤/蒸蛋盅`
+                recipeTitle = `${mealPrefix}：免顧火「${cleanMain}」微波焗烤暖盅`
                 steps = [
-                  `將食材切丁放進馬克杯或深碗中，加入少許牛奶或打散的蛋液（若無則加 2 匙水與醬汁）。`,
-                  `表面鋪上撕碎的起司片或胡椒粒，微波 2 分鐘至膨脹定型。`,
-                  `取出稍涼 30 秒即可用湯匙挖著享用！`
+                  `將 ${baseText} 與 ${mainText} 切丁放進馬克杯或深碗中。`,
+                  `表面鋪滿 ${sauceText}，微波 2 分鐘至起泡定型。`,
+                  `取出稍涼 30 秒即可用湯匙直接挖著享用！`
                 ]
                 serving2 = `搭配一杯無糖綠茶或黑咖啡，就是零負擔的輕食餐。`
               }
             } else if (selectedAppliance.value === 'salad') {
-              recipeTitle = `${mealPrefix}：免開火「${cleanMain}」手撕特調溫沙拉`
+              recipeTitle = `${mealPrefix}：免開火「${cleanMain}」全料手撕溫冷拌`
               steps = [
-                `完全不用開火！將可直接食用的食材全部手撕或切成一口大小。`,
-                `丟進保鮮盒或大碗公裡，淋上胡麻醬、醬油或現有醬汁。`,
+                `完全不用開火！將 ${baseText} 與 ${mainText} 全部手撕或切成一口大小。`,
+                `丟進保鮮盒或大碗公裡，淋上全部的 ${sauceText}。`,
                 `蓋上蓋子用力搖晃 10 秒鐘（或用筷子喇一喇），讓醬汁均勻附著即可開吃！`
               ]
               serving2 = `夾進吐司或配蘇打餅乾一起吃，口感層次更豐富。`
             } else {
-              recipeTitle = `${mealPrefix}：「${cleanMain}」小湯鍋慢煨鮮味煲`
+              recipeTitle = `${mealPrefix}：「${cleanMain}」小湯鍋全料慢煨煲`
               steps = [
-                `鍋內加入約 300ml 溫水或高湯，大火煮沸。`,
-                `投入耐煮食材慢滾 3 分鐘，釋放食材本身的天然甜味。`,
-                `起鍋前加入醬汁調味，關火悶 1 分鐘讓味道融為一體。`
+                `鍋內加入約 300ml 溫水煮沸，先投入 ${baseText} 慢滾 2 分鐘釋放甜味。`,
+                `接著放入主角群 ${mainText} 一起煮熟。`,
+                `起鍋前倒入 ${sauceText} 調味，關火悶 1 分鐘讓全數 ${count} 樣食材融為一體！`
               ]
               serving2 = `湯底留下來隔天丟一小把主食或打入蛋花，又是一頓完美餐點！`
             }
@@ -787,7 +888,9 @@
               servingWay1: serving1,
               servingWay2: serving2,
               steps: steps,
-              usedIngredients: list
+              usedIngredients: list,
+              ingredientRoles: ingredientRoles,
+              visualTheme: visualThemes[variant]
             }
 
             isGenerating.value = false
@@ -796,7 +899,7 @@
               const el = document.getElementById('recipe-result')
               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
             }, 100)
-          }, 700)
+          }, 650)
         }
 
         const toggleStepCheck = (sIdx) => {
@@ -819,6 +922,7 @@
           generatedRecipe,
           completedSteps,
           recipeVariantIndex,
+          getIngredientEmoji,
           isIngredientSelected,
           toggleIngredient,
           addCustomIngredient,
